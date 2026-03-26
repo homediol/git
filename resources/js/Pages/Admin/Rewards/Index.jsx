@@ -9,9 +9,13 @@ import InputError from '@/Components/InputError';
 export default function RewardsAdminIndex({ rewards = [], userRewards = [] }) {
     const [editing, setEditing] = useState(null);
     const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
-        name: '',
+        name_rw: '',
+        name_en: '',
+        name_fr: '',
         slug: '',
-        description: '',
+        description_rw: '',
+        description_en: '',
+        description_fr: '',
         image: '',
         expires_after_days: 30,
         is_active: true,
@@ -31,9 +35,13 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [] }) {
     const submit = (e) => {
         e.preventDefault();
         const formData = new FormData();
-        formData.append('name', data.name);
+        formData.append('name_rw', data.name_rw);
+        formData.append('name_en', data.name_en || '');
+        formData.append('name_fr', data.name_fr || '');
         formData.append('slug', data.slug);
-        formData.append('description', data.description || '');
+        formData.append('description_rw', data.description_rw || '');
+        formData.append('description_en', data.description_en || '');
+        formData.append('description_fr', data.description_fr || '');
         formData.append('expires_after_days', data.expires_after_days || 30);
         formData.append('is_active', data.is_active ? '1' : '0');
         if (data.image instanceof File) {
@@ -61,9 +69,13 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [] }) {
     const edit = (reward) => {
         setEditing(reward.id);
         setData({
-            name: reward.name || '',
+            name_rw: reward.name_rw || reward.name || '',
+            name_en: reward.name_en || '',
+            name_fr: reward.name_fr || '',
             slug: reward.slug || '',
-            description: reward.description || '',
+            description_rw: reward.description_rw || reward.description || '',
+            description_en: reward.description_en || '',
+            description_fr: reward.description_fr || '',
             image: reward.image || '',
             expires_after_days: reward.expires_after_days || 30,
             is_active: reward.is_active ?? true,
@@ -92,43 +104,77 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [] }) {
                     <div className="glass rounded-2xl p-6 mb-6">
                         <h3 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Edit' : 'Add'} Reward</h3>
                         <form onSubmit={submit}>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <InputLabel value="Name" />
-                                    <TextInput value={data.name} onChange={(e) => setData('name', e.target.value)} className="mt-1 block w-full" required />
-                                    <InputError message={errors.name} className="mt-2" />
+                            <div className="grid gap-4 lg:grid-cols-3">
+                                <div className="rounded-2xl border border-white/20 bg-white/40 p-4">
+                                    <p className="text-xs uppercase tracking-[0.3em] text-gray-500 mb-3">Kinyarwanda</p>
+                                    <div className="mb-3">
+                                        <InputLabel value="Name (RW)" />
+                                        <TextInput value={data.name_rw} onChange={(e) => setData('name_rw', e.target.value)} className="mt-1 block w-full" required />
+                                        <InputError message={errors.name_rw} className="mt-2" />
+                                    </div>
+                                    <div>
+                                        <InputLabel value="Description (RW)" />
+                                        <textarea value={data.description_rw} onChange={(e) => setData('description_rw', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
+                                        <InputError message={errors.description_rw} className="mt-2" />
+                                    </div>
                                 </div>
+
+                                <div className="rounded-2xl border border-white/20 bg-white/40 p-4">
+                                    <p className="text-xs uppercase tracking-[0.3em] text-gray-500 mb-3">English</p>
+                                    <div className="mb-3">
+                                        <InputLabel value="Name (EN)" />
+                                        <TextInput value={data.name_en} onChange={(e) => setData('name_en', e.target.value)} className="mt-1 block w-full" />
+                                        <InputError message={errors.name_en} className="mt-2" />
+                                    </div>
+                                    <div>
+                                        <InputLabel value="Description (EN)" />
+                                        <textarea value={data.description_en} onChange={(e) => setData('description_en', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
+                                        <InputError message={errors.description_en} className="mt-2" />
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/20 bg-white/40 p-4">
+                                    <p className="text-xs uppercase tracking-[0.3em] text-gray-500 mb-3">Francais</p>
+                                    <div className="mb-3">
+                                        <InputLabel value="Name (FR)" />
+                                        <TextInput value={data.name_fr} onChange={(e) => setData('name_fr', e.target.value)} className="mt-1 block w-full" />
+                                        <InputError message={errors.name_fr} className="mt-2" />
+                                    </div>
+                                    <div>
+                                        <InputLabel value="Description (FR)" />
+                                        <textarea value={data.description_fr} onChange={(e) => setData('description_fr', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
+                                        <InputError message={errors.description_fr} className="mt-2" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4 mt-4">
                                 <div>
                                     <InputLabel value="Slug" />
                                     <TextInput value={data.slug} onChange={(e) => setData('slug', e.target.value)} className="mt-1 block w-full" required />
                                     <InputError message={errors.slug} className="mt-2" />
                                 </div>
-                            </div>
-                            <div className="mt-4">
-                                <InputLabel value="Description" />
-                                <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
-                                <InputError message={errors.description} className="mt-2" />
-                            </div>
-                            <div className="grid md:grid-cols-2 gap-4 mt-4">
                                 <div>
                                     <InputLabel value="Expires After (Days)" />
                                     <TextInput type="number" value={data.expires_after_days} onChange={(e) => setData('expires_after_days', e.target.value)} className="mt-1 block w-full" />
                                     <InputError message={errors.expires_after_days} className="mt-2" />
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={data.is_active}
-                                            onChange={(e) => setData('is_active', e.target.checked)}
-                                            className="rounded"
-                                        />
-                                        Active
-                                    </label>
-                                    <InputLabel value="Image" className="ml-auto" />
-                                    <input type="file" accept="image/*" onChange={(e) => setData('image', e.target.files[0])} className="text-sm text-gray-600" />
-                                </div>
                             </div>
+
+                            <div className="flex items-center gap-3 mt-4">
+                                <label className="flex items-center gap-2 text-sm text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.is_active}
+                                        onChange={(e) => setData('is_active', e.target.checked)}
+                                        className="rounded"
+                                    />
+                                    Active
+                                </label>
+                                <InputLabel value="Image" className="ml-auto" />
+                                <input type="file" accept="image/*" onChange={(e) => setData('image', e.target.files[0])} className="text-sm text-gray-600" />
+                            </div>
+
                             {data.image && typeof data.image === 'string' && (
                                 <img src={data.image} alt="Preview" className="mt-3 h-24 rounded" />
                             )}
@@ -145,15 +191,15 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [] }) {
                         {rewards.map((reward) => (
                             <div key={reward.id} className="glass rounded-2xl p-6">
                                 {reward.image && (
-                                    <img src={reward.image} alt={reward.name} className="mb-4 h-40 w-full rounded-xl object-cover" />
+                                    <img src={reward.image} alt={reward.name_rw || reward.name} className="mb-4 h-40 w-full rounded-xl object-cover" />
                                 )}
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-xl font-bold text-gray-800">{reward.name}</h3>
+                                    <h3 className="text-xl font-bold text-gray-800">{reward.name_rw || reward.name}</h3>
                                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${reward.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>
                                         {reward.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                 </div>
-                                <p className="text-gray-600 mt-2">{reward.description}</p>
+                                <p className="text-gray-600 mt-2">{reward.description_rw || reward.description}</p>
                                 <div className="flex gap-2 mt-4">
                                     <button onClick={() => edit(reward)} className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm">Edit</button>
                                     <button onClick={() => remove(reward.id)} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">Delete</button>
@@ -172,7 +218,7 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [] }) {
                                     <div key={item.id} className="rounded-xl border border-white/10 bg-white/40 p-4">
                                         <div className="flex flex-wrap items-center justify-between gap-4">
                                             <div>
-                                                <p className="text-sm font-semibold text-gray-800">{item.user?.name} - {item.reward?.name}</p>
+                                                <p className="text-sm font-semibold text-gray-800">{item.user?.name} - {item.reward?.name_rw || item.reward?.name}</p>
                                                 <p className="text-xs text-gray-600">Status: {item.status}</p>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-3">

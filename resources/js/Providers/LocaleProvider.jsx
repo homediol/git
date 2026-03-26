@@ -45,6 +45,12 @@ export function LocaleProvider({ children }) {
 
     const value = useMemo(() => ({ locale, setLocale, t }), [locale]);
 
+    useEffect(() => {
+        if (!auth?.user) return;
+        if (auth.user.language === locale) return;
+        axios.post(route('locale.update'), { locale }).catch(() => {});
+    }, [auth?.user, locale]);
+
     return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 

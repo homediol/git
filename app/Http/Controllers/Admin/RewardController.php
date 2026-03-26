@@ -22,9 +22,13 @@ class RewardController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name_rw' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'name_fr' => 'nullable|string|max:255',
             'slug' => 'required|string|max:255|unique:rewards,slug',
-            'description' => 'nullable|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
             'expires_after_days' => 'nullable|integer|min:1',
             'is_active' => 'nullable|boolean',
@@ -35,9 +39,25 @@ class RewardController extends Controller
             $validated['image'] = '/storage/' . $path;
         }
 
-        $validated['is_active'] = $request->boolean('is_active');
+        $payload = [
+            'name' => $validated['name_rw'],
+            'name_rw' => $validated['name_rw'],
+            'name_en' => $validated['name_en'] ?? null,
+            'name_fr' => $validated['name_fr'] ?? null,
+            'slug' => $validated['slug'],
+            'description' => $validated['description_rw'] ?? null,
+            'description_rw' => $validated['description_rw'] ?? null,
+            'description_en' => $validated['description_en'] ?? null,
+            'description_fr' => $validated['description_fr'] ?? null,
+            'expires_after_days' => $validated['expires_after_days'] ?? null,
+            'is_active' => $request->boolean('is_active'),
+        ];
 
-        $reward = Reward::create($validated);
+        if (isset($validated['image'])) {
+            $payload['image'] = $validated['image'];
+        }
+
+        $reward = Reward::create($payload);
 
         UserActivity::create([
             'user_id' => $request->user()->id,
@@ -51,9 +71,13 @@ class RewardController extends Controller
     public function update(Request $request, Reward $reward)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name_rw' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'name_fr' => 'nullable|string|max:255',
             'slug' => 'required|string|max:255|unique:rewards,slug,' . $reward->id,
-            'description' => 'nullable|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
             'expires_after_days' => 'nullable|integer|min:1',
             'is_active' => 'nullable|boolean',
@@ -66,9 +90,25 @@ class RewardController extends Controller
             unset($validated['image']);
         }
 
-        $validated['is_active'] = $request->boolean('is_active');
+        $payload = [
+            'name' => $validated['name_rw'],
+            'name_rw' => $validated['name_rw'],
+            'name_en' => $validated['name_en'] ?? null,
+            'name_fr' => $validated['name_fr'] ?? null,
+            'slug' => $validated['slug'],
+            'description' => $validated['description_rw'] ?? null,
+            'description_rw' => $validated['description_rw'] ?? null,
+            'description_en' => $validated['description_en'] ?? null,
+            'description_fr' => $validated['description_fr'] ?? null,
+            'expires_after_days' => $validated['expires_after_days'] ?? null,
+            'is_active' => $request->boolean('is_active'),
+        ];
 
-        $reward->update($validated);
+        if (isset($validated['image'])) {
+            $payload['image'] = $validated['image'];
+        }
+
+        $reward->update($payload);
 
         UserActivity::create([
             'user_id' => $request->user()->id,

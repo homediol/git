@@ -116,12 +116,23 @@ class RewardService
                 $rewardData
             );
 
-            if (empty($reward->description) || empty($reward->image)) {
-                $reward->update([
-                    'description' => $reward->description ?: $rewardData['description'],
-                    'image' => $reward->image ?: $rewardData['image'],
-                    'expires_after_days' => $reward->expires_after_days ?: $rewardData['expires_after_days'],
-                ]);
+            $updates = [];
+            foreach (['name', 'name_rw', 'name_en', 'name_fr', 'description', 'description_rw', 'description_en', 'description_fr'] as $field) {
+                if (empty($reward->{$field}) && !empty($rewardData[$field])) {
+                    $updates[$field] = $rewardData[$field];
+                }
+            }
+
+            if (empty($reward->image) && !empty($rewardData['image'])) {
+                $updates['image'] = $rewardData['image'];
+            }
+
+            if (empty($reward->expires_after_days) && !empty($rewardData['expires_after_days'])) {
+                $updates['expires_after_days'] = $rewardData['expires_after_days'];
+            }
+
+            if (!empty($updates)) {
+                $reward->update($updates);
             }
 
             return $reward;
