@@ -27,10 +27,10 @@ class SettingController extends Controller
     {
         $request->validate([
             'cover_background' => 'nullable|image|max:5120',
-            'header_image' => 'nullable|image|max:2048',
+            'header_image' => 'nullable|image|max:512000',
             'header_color' => 'nullable|string',
-            'background_image' => 'nullable|image|max:2048',
-            'footer_image' => 'nullable|image|max:2048',
+            'background_image' => 'nullable|image|max:512000',
+            'footer_image' => 'nullable|image|max:512000',
             'footer_color' => 'nullable|string',
         ]);
 

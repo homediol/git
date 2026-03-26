@@ -3,11 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Service;
 use App\Models\Portfolio;
 use App\Models\Post;
 use App\Models\Team;
 use Illuminate\Database\Seeder;
+use Database\Seeders\ServiceCatalogSeeder;
+use Database\Seeders\PromotionSeeder;
+use Database\Seeders\RewardSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -32,68 +34,10 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password'),
         ]);
 
-        // Seed Services - Pavona Studios Printing & Design Services
-        $services = [
-            [
-                'title' => 'Logo Design & Brand Identity',
-                'description' => 'Professional logo design and complete brand identity packages. We create memorable brands that stand out and communicate your business values effectively.',
-                'image' => 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800',
-            ],
-            [
-                'title' => 'Large Format Printing',
-                'description' => 'High-quality large format printing for banners, posters, and signage. Perfect for events, exhibitions, and outdoor advertising with vibrant colors.',
-                'image' => 'https://images.unsplash.com/photo-1611162618071-b39a2ec055fb?w=800',
-            ],
-            [
-                'title' => 'Roll-Up Banners & Signage',
-                'description' => 'Professional roll-up banners and signage solutions for exhibitions, events, and retail spaces. Portable, durable, and eye-catching designs.',
-                'image' => 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800',
-            ],
-            [
-                'title' => 'Flyers, Posters & Brochures',
-                'description' => 'Premium quality marketing materials including flyers, posters, and brochures. Designed to capture attention and deliver your message effectively.',
-                'image' => 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800',
-            ],
-            [
-                'title' => 'Business Cards & ID Cards',
-                'description' => 'Professional business cards and ID cards with premium finishes. Make a lasting first impression with high-quality printing and design.',
-                'image' => 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800',
-            ],
-            [
-                'title' => 'T-Shirt & Apparel Printing',
-                'description' => 'Custom t-shirt and apparel printing for businesses, events, and teams. High-quality prints that last, with vibrant colors and sharp details.',
-                'image' => 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
-            ],
-            [
-                'title' => 'Mug & Promotional Items',
-                'description' => 'Custom printed mugs and promotional items for corporate gifts and marketing. Perfect for brand visibility and customer appreciation.',
-                'image' => 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=800',
-            ],
-            [
-                'title' => 'Stickers & Labels',
-                'description' => 'Custom stickers and labels for products, packaging, and branding. Durable, weather-resistant, and available in any shape or size.',
-                'image' => 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800',
-            ],
-            [
-                'title' => 'Car Branding & Vehicle Wraps',
-                'description' => 'Professional vehicle wraps and car branding solutions. Transform your vehicles into mobile billboards with stunning graphics.',
-                'image' => 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
-            ],
-            [
-                'title' => 'Award Plaques & Trophies',
-                'description' => 'Custom award plaques, trophies, and recognition items. Celebrate achievements with premium quality awards and engravings.',
-                'image' => 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800',
-            ],
-            [
-                'title' => 'Presentation Slides & Corporate Materials',
-                'description' => 'Professional presentation design and corporate materials. Impress clients and stakeholders with polished, branded presentations.',
-                'image' => 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800',
-            ],
-        ];
-
-        foreach ($services as $service) {
-            Service::create($service);
-        }
+        // Seed default services and sub-services
+        $this->call(ServiceCatalogSeeder::class);
+        $this->call(RewardSeeder::class);
+        $this->call(PromotionSeeder::class);
 
         // Seed Portfolio Items - Pavona Studios Work
         $portfolios = [

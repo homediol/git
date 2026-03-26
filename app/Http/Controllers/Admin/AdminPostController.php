@@ -26,7 +26,7 @@ class AdminPostController extends Controller
             'title' => 'required|max:255',
             'content' => 'required',
             'category' => 'required|max:255',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:512000'
         ]);
 
         if ($request->hasFile('image')) {
@@ -48,7 +48,7 @@ class AdminPostController extends Controller
             'title' => 'required|max:255',
             'content' => 'required',
             'category' => 'required|max:255',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:512000'
         ]);
 
         if ($request->hasFile('image')) {

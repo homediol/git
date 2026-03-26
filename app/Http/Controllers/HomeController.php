@@ -9,7 +9,9 @@ use App\Models\Post;
 use App\Models\Contact;
 use App\Models\SiteSettings;
 use App\Models\Advertisement;
+use Database\Seeders\ServiceCatalogSeeder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 /**
@@ -18,14 +20,98 @@ use Inertia\Inertia;
  */
 class HomeController extends Controller
 {
+    private function featuredServiceKeys(): array
+    {
+        return [
+            'photography-videography',
+            'graphics-printing',
+            'make-up',
+            'software-development',
+        ];
+    }
+
+    private function featuredServiceTitles(): array
+    {
+        return [
+            'Photography & Videography',
+            'Graphics & Printing Design',
+            'Make Up',
+            'Software Development',
+        ];
+    }
+
+    private function seedDefaultServicesIfMissing(): void
+    {
+        if (Schema::hasColumn('services', 'service_key')) {
+            $requiredKeys = $this->featuredServiceKeys();
+            $existing = Service::whereNull('parent_service_id')
+                ->whereIn('service_key', $requiredKeys)
+                ->pluck('service_key')
+                ->all();
+            $missing = array_diff($requiredKeys, $existing);
+
+            if (!empty($missing)) {
+                (new ServiceCatalogSeeder())->run();
+            }
+
+            return;
+        }
+
+        $requiredTitles = $this->featuredServiceTitles();
+        $existing = Service::whereNull('parent_service_id')
+            ->whereIn('title', $requiredTitles)
+            ->pluck('title')
+            ->all();
+        $missing = array_diff($requiredTitles, $existing);
+
+        if (!empty($missing)) {
+            (new ServiceCatalogSeeder())->run();
+        }
+    }
+
+    private function getFeaturedServices()
+    {
+        if (Schema::hasColumn('services', 'service_key')) {
+            $featuredKeys = $this->featuredServiceKeys();
+            $order = array_flip($featuredKeys);
+
+            return Service::whereNull('parent_service_id')
+                ->whereIn('service_key', $featuredKeys)
+                ->get()
+                ->sortBy(function ($service) use ($order) {
+                    return $order[$service->service_key] ?? 999;
+                })
+                ->values();
+        }
+
+        $featuredTitles = $this->featuredServiceTitles();
+        $order = array_flip($featuredTitles);
+
+        return Service::whereNull('parent_service_id')
+            ->whereIn('title', $featuredTitles)
+            ->get()
+            ->sortBy(function ($service) use ($order) {
+                return $order[$service->title] ?? 999;
+            })
+            ->values();
+    }
+
     /**
      * Display the homepage with featured services and portfolio items
      * @return \Inertia\Response
      */
     public function index()
     {
+        $this->seedDefaultServicesIfMissing();
+        $featuredServices = $this->getFeaturedServices();
+
+        if ($featuredServices->isEmpty()) {
+            (new ServiceCatalogSeeder())->run();
+            $featuredServices = $this->getFeaturedServices();
+        }
+
         return Inertia::render('Home', [
-            'services' => Service::take(6)->get(),
+            'services' => $featuredServices,
             'portfolios' => Portfolio::take(6)->get(),
             'teams' => Team::orderBy('order')->get(),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
@@ -60,8 +146,87 @@ class HomeController extends Controller
      */
     public function services()
     {
+        $this->seedDefaultServicesIfMissing();
+
+        $services = Service::whereNull('parent_service_id')->get();
+
+        if (Schema::hasColumn('services', 'service_key')) {
+            $featuredKeys = $this->featuredServiceKeys();
+            $order = array_flip($featuredKeys);
+            $services = $services->sortBy(function ($service) use ($order) {
+                return $order[$service->service_key] ?? 999;
+            })->values();
+        } else {
+            $featuredTitles = $this->featuredServiceTitles();
+            $order = array_flip($featuredTitles);
+            $services = $services->sortBy(function ($service) use ($order) {
+                return $order[$service->title] ?? 999;
+            })->values();
+        }
+
+        if ($services->isEmpty()) {
+            (new ServiceCatalogSeeder())->run();
+            $services = Service::whereNull('parent_service_id')->get();
+
+            if (Schema::hasColumn('services', 'service_key')) {
+                $featuredKeys = $this->featuredServiceKeys();
+                $order = array_flip($featuredKeys);
+                $services = $services->sortBy(function ($service) use ($order) {
+                    return $order[$service->service_key] ?? 999;
+                })->values();
+            } else {
+                $featuredTitles = $this->featuredServiceTitles();
+                $order = array_flip($featuredTitles);
+                $services = $services->sortBy(function ($service) use ($order) {
+                    return $order[$service->title] ?? 999;
+                })->values();
+            }
+        }
+
         return Inertia::render('Services', [
-            'services' => Service::all(),
+            'services' => $services,
+            'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
+            'settings' => [
+                'header_bg' => SiteSettings::get('header_bg'),
+                'main_bg' => SiteSettings::get('main_bg'),
+                'footer_bg' => SiteSettings::get('footer_bg'),
+            ],
+        ]);
+    }
+
+    /**
+     * Display a single service with its sub-services
+     */
+    public function serviceShow(Service $service)
+    {
+        $this->seedDefaultServicesIfMissing();
+
+        return Inertia::render('Services/Show', [
+            'service' => $service,
+            'subServices' => $service->subServices()->latest()->get(),
+            'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
+            'settings' => [
+                'header_bg' => SiteSettings::get('header_bg'),
+                'main_bg' => SiteSettings::get('main_bg'),
+                'footer_bg' => SiteSettings::get('footer_bg'),
+            ],
+        ]);
+    }
+
+    /**
+     * Display a single sub-service with its parent service context
+     */
+    public function subServiceShow(Service $service, Service $subService)
+    {
+        $this->seedDefaultServicesIfMissing();
+
+        if ($subService->parent_service_id !== $service->id) {
+            abort(404);
+        }
+
+        return Inertia::render('Services/SubServiceShow', [
+            'service' => $service,
+            'subService' => $subService,
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),

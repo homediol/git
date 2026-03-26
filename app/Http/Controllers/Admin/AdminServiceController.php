@@ -25,7 +25,7 @@ class AdminServiceController extends Controller
         $validated = $request->validate([
             'title' => 'required|max:255',
             'description' => 'required',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:512000'
         ]);
 
         if ($request->hasFile('image')) {
@@ -46,7 +46,7 @@ class AdminServiceController extends Controller
         $validated = $request->validate([
             'title' => 'required|max:255',
             'description' => 'required',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:512000'
         ]);
 
         if ($request->hasFile('image')) {

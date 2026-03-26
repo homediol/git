@@ -1,13 +1,14 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
+import InputError from '@/Components/InputError';
 
 export default function ServicesIndex({ services }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, put, delete: destroy, reset } = useForm({
+    const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
         title: '',
         description: '',
         image: '',
@@ -23,7 +24,7 @@ export default function ServicesIndex({ services }) {
         }
         
         if (editing) {
-            post(route('admin.services.update', editing), {
+            put(route('admin.services.update', editing), {
                 data: formData,
                 forceFormData: true,
                 onSuccess: () => { reset(); setEditing(null); }
@@ -59,14 +60,17 @@ export default function ServicesIndex({ services }) {
                             <div className="mb-4">
                                 <InputLabel value="Title" />
                                 <TextInput value={data.title} onChange={(e) => setData('title', e.target.value)} className="mt-1 block w-full" required />
+                                <InputError message={errors.title} className="mt-2" />
                             </div>
                             <div className="mb-4">
                                 <InputLabel value="Description" />
                                 <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" required />
+                                <InputError message={errors.description} className="mt-2" />
                             </div>
                             <div className="mb-4">
                                 <InputLabel value="Image" />
                                 <input type="file" accept="image/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
+                                <InputError message={errors.image} className="mt-2" />
                                 {data.image && typeof data.image === 'string' && <img src={data.image} alt="Preview" className="mt-2 h-20 rounded" />}
                             </div>
                             <div className="flex gap-2">
@@ -79,11 +83,24 @@ export default function ServicesIndex({ services }) {
                     <div className="grid md:grid-cols-2 gap-6">
                         {services.map((service) => (
                             <div key={service.id} className="glass rounded-2xl p-6">
+                                {service.image && (
+                                    <img
+                                        src={service.image}
+                                        alt={service.title}
+                                        className="mb-4 h-40 w-full rounded-xl object-cover"
+                                    />
+                                )}
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{service.title}</h3>
                                 <p className="text-gray-600 mb-4">{service.description}</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => edit(service)} className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm">Edit</button>
                                     <button onClick={() => deleteService(service.id)} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">Delete</button>
+                                    <Link
+                                        href={route('admin.services.subservices', service.id)}
+                                        className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm"
+                                    >
+                                        Sub-services
+                                    </Link>
                                 </div>
                             </div>
                         ))}

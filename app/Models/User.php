@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'language',
     ];
 
     /**
@@ -55,5 +56,15 @@ class User extends Authenticatable
     public function isEditor()
     {
         return $this->role === 'editor';
+    }
+
+    public function userRewards()
+    {
+        return $this->hasMany(UserReward::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(UserActivity::class);
     }
 }

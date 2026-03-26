@@ -1,57 +1,107 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function Dashboard() {
+    const { auth } = usePage().props;
+
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
-                </h2>
+                <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Dashboard</p>
+                    <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 mt-2">Welcome back, {auth.user.name}</h2>
+                    <p className="text-sm text-slate-600 mt-2">Manage rewards, notifications, and creative services in one place.</p>
+                </div>
             }
         >
             <Head title="Dashboard" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="glass rounded-2xl shadow-2xl p-6">
-                        <div className="text-gray-900">
-                            <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                Welcome to Your Dashboard!
-                            </h3>
-                            <p className="text-gray-700">You're logged in and ready to explore.</p>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Free Rewards</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-2">3 Active</p>
+                    <p className="text-xs text-slate-500 mt-1">Ready to claim</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Notifications</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-2">Always On</p>
+                    <p className="text-xs text-slate-500 mt-1">Never miss an update</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Support</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-2">24/7</p>
+                    <p className="text-xs text-slate-500 mt-1">Priority response</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Status</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-2">Active</p>
+                    <p className="text-xs text-slate-500 mt-1">Account verified</p>
+                </div>
+            </div>
+
+            <div className="mt-8 grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2 grid gap-6">
+                    <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-slate-200/60">
+                        <h3 className="text-lg font-semibold text-slate-900">Quick Actions</h3>
+                        <p className="text-sm text-slate-600 mt-2">Jump back into the services you use most.</p>
+                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                            <Link
+                                href={route('rewards.index')}
+                                className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 text-center"
+                            >
+                                View Rewards
+                            </Link>
+                            <Link
+                                href={route('services')}
+                                className="rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white text-center"
+                            >
+                                Browse Services
+                            </Link>
+                            <Link
+                                href={route('contact')}
+                                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:text-slate-900 text-center"
+                            >
+                                Contact Team
+                            </Link>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <div className="glass rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mb-4">
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
+                    <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-slate-200/60">
+                        <h3 className="text-lg font-semibold text-slate-900">Latest Activity</h3>
+                        <p className="text-sm text-slate-600 mt-2">Highlights from your Pavona journey.</p>
+                        <div className="mt-5 space-y-3">
+                            <div className="rounded-2xl bg-white/70 p-4">
+                                <p className="text-sm font-semibold text-slate-800">New promotions are live</p>
+                                <p className="text-xs text-slate-500 mt-1">Check the notification bell for updates.</p>
                             </div>
-                            <h4 className="text-lg font-semibold text-gray-800 mb-2">Fast Performance</h4>
-                            <p className="text-gray-600 text-sm">Lightning-fast SPA navigation with Inertia.js</p>
+                            <div className="rounded-2xl bg-white/70 p-4">
+                                <p className="text-sm font-semibold text-slate-800">Rewards assigned</p>
+                                <p className="text-xs text-slate-500 mt-1">Your free services are ready to claim.</p>
+                            </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div className="glass rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl mb-4">
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                </svg>
-                            </div>
-                            <h4 className="text-lg font-semibold text-gray-800 mb-2">Modern Design</h4>
-                            <p className="text-gray-600 text-sm">Beautiful glassmorphism UI with Tailwind CSS</p>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-slate-200/60">
+                    <h3 className="text-lg font-semibold text-slate-900">Account Snapshot</h3>
+                    <p className="text-sm text-slate-600 mt-2">A quick overview of your studio access.</p>
+                    <div className="mt-5 space-y-4">
+                        <div className="rounded-2xl bg-white/70 p-4">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Member</p>
+                            <p className="text-base font-semibold text-slate-800 mt-1">{auth.user.name}</p>
+                            <p className="text-xs text-slate-500">{auth.user.email}</p>
                         </div>
-
-                        <div className="glass rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mb-4">
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                            </div>
-                            <h4 className="text-lg font-semibold text-gray-800 mb-2">Secure</h4>
-                            <p className="text-gray-600 text-sm">Built-in Laravel authentication and security</p>
+                        <div className="rounded-2xl bg-white/70 p-4">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Access</p>
+                            <p className="text-base font-semibold text-slate-800 mt-1">Creative Services</p>
+                            <p className="text-xs text-slate-500">Photography, design, and development</p>
+                        </div>
+                        <div className="rounded-2xl bg-white/70 p-4">
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Next Step</p>
+                            <p className="text-base font-semibold text-slate-800 mt-1">Claim your free rewards</p>
+                            <Link href={route('rewards.index')} className="text-xs text-sky-600 hover:text-sky-800">
+                                Open rewards dashboard
+                            </Link>
                         </div>
                     </div>
                 </div>

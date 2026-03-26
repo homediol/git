@@ -8,6 +8,11 @@ use App\Models\Contact;
 use App\Models\Post;
 use App\Models\Advertisement;
 use App\Models\Team;
+use App\Models\Promotion;
+use App\Models\Reward;
+use App\Models\UserReward;
+use App\Models\UserActivity;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -30,6 +35,11 @@ class AdminController extends Controller
                 'contacts' => Contact::count(),
                 'posts' => Post::count(),
                 'teams' => Team::count(),
+                'promotions' => Promotion::count(),
+                'rewards' => Reward::count(),
+                'userRewards' => UserReward::count(),
+                'notifications' => DatabaseNotification::count(),
+                'activities' => UserActivity::count(),
             ]
         ]);
     }
@@ -42,7 +52,7 @@ class AdminController extends Controller
     public function services()
     {
         return Inertia::render('Admin/Services/Index', [
-            'services' => Service::latest()->get(),
+            'services' => Service::whereNull('parent_service_id')->latest()->get(),
         ]);
     }
 
@@ -54,7 +64,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
         ]);
 
         if ($request->hasFile('image')) {
@@ -62,6 +72,7 @@ class AdminController extends Controller
             $validated['image'] = '/storage/' . $path;
         }
 
+        $validated['parent_service_id'] = null;
         Service::create($validated);
         return back()->with('success', 'Service created!');
     }
@@ -74,7 +85,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
         ]);
 
         if ($request->hasFile('image')) {
@@ -95,6 +106,77 @@ class AdminController extends Controller
         return back()->with('success', 'Service deleted!');
     }
 
+    /**
+     * Display sub-services for a service
+     */
+    public function serviceSubServices(Service $service)
+    {
+        return Inertia::render('Admin/Services/SubServices', [
+            'service' => $service,
+            'subServices' => $service->subServices()->latest()->get(),
+        ]);
+    }
+
+    /**
+     * Store a new sub-service
+     */
+    public function subServicesStore(Request $request, Service $service)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('sub-services', 'public');
+            $validated['image'] = '/storage/' . $path;
+        }
+
+        $validated['parent_service_id'] = $service->id;
+        Service::create($validated);
+        return back()->with('success', 'Sub-service created!');
+    }
+
+    /**
+     * Update an existing sub-service
+     */
+    public function subServicesUpdate(Request $request, Service $service, Service $subService)
+    {
+        if ($subService->parent_service_id !== $service->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('sub-services', 'public');
+            $validated['image'] = '/storage/' . $path;
+        } else {
+            unset($validated['image']);
+        }
+
+        $subService->update($validated);
+        return back()->with('success', 'Sub-service updated!');
+    }
+
+    /**
+     * Delete a sub-service
+     */
+    public function subServicesDestroy(Service $service, Service $subService)
+    {
+        if ($subService->parent_service_id !== $service->id) {
+            abort(404);
+        }
+
+        $subService->delete();
+        return back()->with('success', 'Sub-service deleted!');
+    }
+
     // ==================== PORTFOLIOS ====================
     
     public function portfolios()
@@ -110,7 +192,7 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
         ]);
 
         if ($request->hasFile('image')) {
@@ -128,7 +210,7 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
         ]);
 
         if ($request->hasFile('image')) {
@@ -176,8 +258,8 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'video' => 'nullable|mimes:mp4,mov,avi,wmv|max:20480',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'video' => 'nullable|mimes:mp4,mov,avi,wmv|max:5120000',
         ]);
 
         if ($request->hasFile('image')) {
@@ -200,8 +282,8 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'video' => 'nullable|mimes:mp4,mov,avi,wmv|max:20480',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'video' => 'nullable|mimes:mp4,mov,avi,wmv|max:5120000',
         ]);
 
         if ($request->hasFile('image')) {
@@ -307,7 +389,7 @@ class AdminController extends Controller
             'bio' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
             'order' => 'integer',
         ]);
 
@@ -328,7 +410,7 @@ class AdminController extends Controller
             'bio' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
             'order' => 'integer',
             'delete_image' => 'boolean',
         ]);

@@ -4,116 +4,145 @@ export default function Welcome({ auth }) {
     return (
         <>
             <Head title="Welcome" />
-            <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100">
-                <div className="relative flex min-h-screen flex-col items-center justify-center selection:bg-purple-500 selection:text-white">
-                    <div className="relative w-full max-w-7xl px-6">
-                        <header className="flex justify-between items-center py-10">
-                            <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                Pavona Studio
-                            </div>
-                            <nav className="flex gap-4">
-                                {auth.user ? (
+            <div className="relative min-h-screen overflow-hidden text-white sky-stars">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#1b2a6b]/40 via-[#0b1d3a]/30 to-transparent" />
+                <div className="absolute -top-52 left-1/2 h-[420px] w-[980px] -translate-x-1/2 rounded-[50%] bg-gradient-to-b from-violet-500/60 via-purple-500/30 to-transparent blur-3xl" />
+                <div className="absolute left-16 top-32 h-48 w-48 rounded-full bg-fuchsia-400/20 blur-3xl" />
+                <div className="absolute bottom-10 right-10 h-56 w-56 rounded-full bg-sky-400/20 blur-3xl" />
+
+                <div className="relative z-10">
+                    <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-8">
+                        <div className="font-display text-xl font-semibold tracking-wide text-white/90">
+                            Kulikeun
+                        </div>
+                        <nav className="flex items-center gap-3">
+                            {auth.user ? (
+                                <Link
+                                    href={route('dashboard')}
+                                    className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-medium text-white/80 backdrop-blur transition hover:border-white/30 hover:text-white"
+                                >
+                                    Dashboard
+                                </Link>
+                            ) : (
+                                <>
                                     <Link
-                                        href={route('dashboard')}
-                                        className="glass rounded-xl px-6 py-2 text-gray-700 font-medium transition hover:shadow-xl hover:scale-105"
+                                        href={route('login')}
+                                        className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-medium text-white/80 backdrop-blur transition hover:border-white/30 hover:text-white"
                                     >
-                                        Dashboard
+                                        Log in
                                     </Link>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href={route('login')}
-                                            className="glass rounded-xl px-6 py-2 text-gray-700 font-medium transition hover:shadow-xl hover:scale-105"
-                                        >
-                                            Log in
-                                        </Link>
-                                        <Link
-                                            href={route('register')}
-                                            className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl px-6 py-2 text-white font-medium transition hover:shadow-xl hover:scale-105"
-                                        >
-                                            Register
-                                        </Link>
-                                    </>
-                                )}
-                            </nav>
-                        </header>
+                                    <Link
+                                        href={route('register')}
+                                        className="rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:scale-[1.02]"
+                                    >
+                                        Register
+                                    </Link>
+                                </>
+                            )}
+                        </nav>
+                    </header>
 
-                        <main className="mt-20">
-                            <div className="text-center mb-16">
-                                <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-                                    Welcome to Pavona Studio
-                                </h1>
-                                <p className="text-xl text-gray-700 max-w-2xl mx-auto">
-                                    A modern Single Page Application built with Laravel, Inertia.js, React, and Tailwind CSS
-                                </p>
-                            </div>
+                    <main className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pb-20">
+                        <p className="font-display text-center text-xs sm:text-sm uppercase tracking-[0.35em] text-sky-200/70">
+                            Sleek &amp; Modern
+                        </p>
+                        <h1 className="font-display mt-5 text-center text-4xl sm:text-5xl font-semibold bg-gradient-to-r from-sky-200 to-indigo-200 bg-clip-text text-transparent">
+                            AI Chat Mobile App UI
+                        </h1>
+                        <p className="mt-4 max-w-2xl text-center text-base sm:text-lg text-white/70">
+                            Explore curated AI chat experiences with a bold, glassy interface and intelligent cards
+                            designed for focus, clarity, and calm.
+                        </p>
 
-                            <div className="grid gap-8 lg:grid-cols-3 mb-16">
-                                <div className="glass rounded-2xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl mb-6 mx-auto">
-                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Lightning Fast</h2>
-                                    <p className="text-gray-600 text-center">
-                                        Experience blazing-fast page transitions with Inertia.js SPA architecture. No page reloads, just smooth navigation.
-                                    </p>
+                        <div className="mt-14 grid w-full gap-8 md:grid-cols-3">
+                            <div className="relative flex h-full flex-col rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                                <div className="flex items-center justify-between text-xs text-white/60">
+                                    <span>09:41</span>
+                                    <span className="text-white/40">LTE ▪︎ ▪︎ ▪︎</span>
                                 </div>
-
-                                <div className="glass rounded-2xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-2xl mb-6 mx-auto">
-                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Beautiful Design</h2>
-                                    <p className="text-gray-600 text-center">
-                                        Modern glassmorphism UI with blurred backgrounds, soft gradients, and elegant animations.
-                                    </p>
-                                </div>
-
-                                <div className="glass rounded-2xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                                    <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-6 mx-auto">
-                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Secure & Robust</h2>
-                                    <p className="text-gray-600 text-center">
-                                        Built on Laravel's solid foundation with authentication, validation, and middleware intact.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="glass rounded-2xl p-12 text-center">
-                                <h3 className="text-3xl font-bold mb-4 text-gray-800">Ready to Get Started?</h3>
-                                <p className="text-gray-600 mb-8">Join us today and experience the future of web applications.</p>
-                                <div className="flex gap-4 justify-center">
-                                    {!auth.user && (
-                                        <>
-                                            <Link
-                                                href={route('register')}
-                                                className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl px-8 py-3 text-white font-semibold transition hover:shadow-xl hover:scale-105"
+                                <div className="mx-auto mt-4 h-2 w-24 rounded-full bg-black/40" />
+                                <div className="mt-6">
+                                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Explore</p>
+                                    <div className="mt-4 space-y-3">
+                                        {[
+                                            { title: 'Daily Productivity', author: 'By Budar1 Rahman' },
+                                            { title: 'Mindfulness & Stress', author: 'By texella' },
+                                            { title: 'Career Advice', author: 'By sekolaramaal' },
+                                        ].map((item) => (
+                                            <div
+                                                key={item.title}
+                                                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
                                             >
-                                                Get Started
-                                            </Link>
-                                            <Link
-                                                href={route('login')}
-                                                className="glass rounded-xl px-8 py-3 text-gray-700 font-semibold transition hover:shadow-xl hover:scale-105"
-                                            >
-                                                Sign In
-                                            </Link>
-                                        </>
-                                    )}
+                                                <p className="text-sm font-semibold text-white/80">{item.title}</p>
+                                                <p className="text-xs text-white/50">{item.author}</p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </main>
 
-                        <footer className="py-16 text-center text-sm text-gray-600">
-                            <p>Built with Laravel, Inertia.js, React & Tailwind CSS</p>
-                        </footer>
-                    </div>
+                            <div className="relative flex h-full flex-col items-center rounded-[36px] border border-white/15 bg-gradient-to-b from-white/15 via-white/5 to-transparent p-6 shadow-2xl shadow-violet-500/20 backdrop-blur-xl">
+                                <div className="flex w-full items-center justify-between text-xs text-white/60">
+                                    <span>09:41</span>
+                                    <span className="text-white/40">LTE ▪︎ ▪︎ ▪︎</span>
+                                </div>
+                                <div className="mx-auto mt-4 h-2 w-24 rounded-full bg-black/40" />
+                                <div className="mt-10 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-violet-300 to-fuchsia-500 shadow-lg shadow-fuchsia-500/40 animate-float" />
+                                <p className="mt-8 text-sm text-white/70">Kulikeun</p>
+                                <h2 className="font-display mt-2 text-center text-3xl font-semibold text-white">
+                                    Welcome back
+                                </h2>
+                                <h3 className="font-display text-center text-3xl font-semibold text-white">
+                                    ISHIMWE
+                                </h3>
+                                <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                                    <p className="text-sm text-white/70">Tap to continue your focus session</p>
+                                </div>
+                            </div>
+
+                            <div className="relative flex h-full flex-col rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                                <div className="flex items-center justify-between text-xs text-white/60">
+                                    <span>09:41</span>
+                                    <span className="text-white/40">LTE ▪︎ ▪︎ ▪︎</span>
+                                </div>
+                                <div className="mx-auto mt-4 h-2 w-24 rounded-full bg-black/40" />
+                                <div className="mt-6">
+                                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Kulikeun 2.1</p>
+                                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                                        <p className="text-sm font-semibold text-white/80">
+                                            How can I learn English language quickly?
+                                        </p>
+                                        <p className="mt-3 text-xs leading-relaxed text-white/50">
+                                            Learning requires effective strategies, consistency, and motivation. Here are the
+                                            steps you can try:
+                                        </p>
+                                        <ul className="mt-3 space-y-2 text-xs text-white/60">
+                                            <li>1. Set clear goals and review daily.</li>
+                                            <li>2. Use active recall and speak often.</li>
+                                            <li>3. Watch short videos and mimic accents.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {!auth.user && (
+                            <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+                                <Link
+                                    href={route('register')}
+                                    className="rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:scale-[1.02]"
+                                >
+                                    Get Started
+                                </Link>
+                                <Link
+                                    href={route('login')}
+                                    className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-semibold text-white/80 backdrop-blur transition hover:border-white/30 hover:text-white"
+                                >
+                                    Sign In
+                                </Link>
+                            </div>
+                        )}
+                    </main>
                 </div>
             </div>
         </>

@@ -26,7 +26,7 @@ class AdminPortfolioController extends Controller
             'title' => 'required|max:255',
             'description' => 'nullable',
             'category' => 'required|max:255',
-            'image' => 'required|image|max:2048'
+            'image' => 'required|image|max:512000'
         ]);
 
         $validated['image'] = $request->file('image')->store('portfolios', 'public');
@@ -45,7 +45,7 @@ class AdminPortfolioController extends Controller
             'title' => 'required|max:255',
             'description' => 'nullable',
             'category' => 'required|max:255',
-            'image' => 'nullable|image|max:2048'
+            'image' => 'nullable|image|max:512000'
         ]);
 
         if ($request->hasFile('image')) {

@@ -95,6 +95,18 @@ export default function Register() {
                         Register
                     </PrimaryButton>
                 </div>
+                <div className="my-4 flex items-center gap-3 text-xs text-gray-500">
+                    <span className="h-px flex-1 bg-gray-200"></span>
+                    or
+                    <span className="h-px flex-1 bg-gray-200"></span>
+                </div>
+                <Link
+                    href={route('auth.google')}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs">G</span>
+                    Continue with Google
+                </Link>
 
                 <div className="mt-4 text-center text-sm">
                     <Link

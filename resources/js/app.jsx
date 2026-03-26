@@ -4,6 +4,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import axios from 'axios';
+import { LocaleProvider } from '@/Providers/LocaleProvider';
 
 // Configure axios to include CSRF token
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -24,7 +25,11 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        root.render(<App {...props} />);
+        root.render(
+            <LocaleProvider>
+                <App {...props} />
+            </LocaleProvider>
+        );
     },
     progress: {
         color: '#4B5563',
