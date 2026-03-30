@@ -41,4 +41,21 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'client_email' => env('FIREBASE_CLIENT_EMAIL'),
+        'private_key' => env('FIREBASE_PRIVATE_KEY'),
+        'sdk_version' => env('FIREBASE_WEB_SDK_VERSION', '10.13.2'),
+        'web' => [
+            'apiKey' => env('FIREBASE_API_KEY'),
+            'authDomain' => env('FIREBASE_AUTH_DOMAIN'),
+            'projectId' => env('FIREBASE_PROJECT_ID'),
+            'storageBucket' => env('FIREBASE_STORAGE_BUCKET'),
+            'messagingSenderId' => env('FIREBASE_MESSAGING_SENDER_ID'),
+            'appId' => env('FIREBASE_APP_ID'),
+            'measurementId' => env('FIREBASE_MEASUREMENT_ID'),
+            'vapidKey' => env('FIREBASE_VAPID_KEY'),
+        ],
+    ],
+
 ];

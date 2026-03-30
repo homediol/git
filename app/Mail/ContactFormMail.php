@@ -25,6 +25,7 @@ class ContactFormMail extends Mailable
                     ->with([
                         'name' => $this->contact->name,
                         'email' => $this->contact->email,
+                        'phone' => $this->contact->phone,
                         'subject' => $this->contact->subject,
                         'messageContent' => $this->contact->message,
                     ]);

@@ -17,4 +17,9 @@ class Service extends Model
     {
         return $this->hasMany(self::class, 'parent_service_id');
     }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
 }

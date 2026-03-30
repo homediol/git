@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
+import MediaPreview from '@/Components/MediaPreview';
 
 export default function ServicesIndex({ services }) {
     const [editing, setEditing] = useState(null);
@@ -68,10 +69,17 @@ export default function ServicesIndex({ services }) {
                                 <InputError message={errors.description} className="mt-2" />
                             </div>
                             <div className="mb-4">
-                                <InputLabel value="Image" />
-                                <input type="file" accept="image/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
+                                <InputLabel value="Media" />
+                                <input type="file" accept="image/*,video/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
                                 <InputError message={errors.image} className="mt-2" />
-                                {data.image && typeof data.image === 'string' && <img src={data.image} alt="Preview" className="mt-2 h-20 rounded" />}
+                                {data.image && typeof data.image === 'string' && (
+                                    <MediaPreview
+                                        src={data.image}
+                                        alt="Preview"
+                                        className="mt-2 h-20 w-full rounded object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                    />
+                                )}
                             </div>
                             <div className="flex gap-2">
                                 <PrimaryButton>{editing ? 'Update' : 'Create'}</PrimaryButton>
@@ -84,10 +92,11 @@ export default function ServicesIndex({ services }) {
                         {services.map((service) => (
                             <div key={service.id} className="glass rounded-2xl p-6">
                                 {service.image && (
-                                    <img
+                                    <MediaPreview
                                         src={service.image}
                                         alt={service.title}
                                         className="mb-4 h-40 w-full rounded-xl object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                                     />
                                 )}
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{service.title}</h3>

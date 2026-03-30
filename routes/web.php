@@ -12,16 +12,25 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\PromotionCampaignController;
+use App\Http\Controllers\Admin\MessageController as AdminMessageController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\RewardController as AdminRewardController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\GuestMessageController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\RewardController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PushNotificationController;
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Models\Advertisement;
+use App\Models\Service;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 // ==================== PUBLIC ROUTES ====================
@@ -37,6 +46,7 @@ Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'storeContact'])->name('contact.store');
 Route::get('/blog', [HomeController::class, 'blog'])->name('blog');
 Route::get('/blog/{post}', [HomeController::class, 'blogShow'])->name('blog.show');
+Route::get('/firebase-messaging-sw.js', [PushNotificationController::class, 'serviceWorker'])->name('push.service-worker');
 
 // Google OAuth
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
@@ -44,6 +54,11 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name
 
 // AI Chatbot
 Route::post('/chat', [ChatController::class, 'chat'])->name('chat');
+Route::get('/support-chat', [GuestMessageController::class, 'index'])->name('guest.messages.index');
+Route::get('/support-chat/thread', [GuestMessageController::class, 'thread'])->name('guest.messages.thread');
+Route::post('/support-chat', [GuestMessageController::class, 'store'])->name('guest.messages.store');
+Route::put('/support-chat/messages/{message}', [GuestMessageController::class, 'update'])->name('guest.messages.update');
+Route::delete('/support-chat/messages/{message}', [GuestMessageController::class, 'destroy'])->name('guest.messages.destroy');
 
 // ==================== USER DASHBOARD ====================
 // Requires authentication
@@ -55,7 +70,42 @@ Route::get('/dashboard', function () {
         return redirect()->route('admin.dashboard');
     }
 
-    return Inertia::render('Dashboard');
+    $featuredKeys = [
+        'photography-videography',
+        'graphics-printing',
+        'make-up',
+        'software-development',
+        'sound-system',
+    ];
+
+    $featuredTitles = [
+        'Photography & Videography',
+        'Graphics & Printing Design',
+        'Make Up',
+        'Software Development',
+        'Sound System',
+    ];
+
+    $services = Service::query()->whereNull('parent_service_id')->get();
+
+    if (Schema::hasColumn('services', 'service_key')) {
+        $order = array_flip($featuredKeys);
+        $services = $services
+            ->whereIn('service_key', $featuredKeys)
+            ->sortBy(fn ($service) => $order[$service->service_key] ?? 999)
+            ->values();
+    } else {
+        $order = array_flip($featuredTitles);
+        $services = $services
+            ->whereIn('title', $featuredTitles)
+            ->sortBy(fn ($service) => $order[$service->title] ?? 999)
+            ->values();
+    }
+
+    return Inertia::render('Dashboard', [
+        'rewards' => $user?->userRewards()->with('reward')->latest()->get() ?? [],
+        'services' => $services,
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // ==================== PROFILE ROUTES ====================
@@ -64,15 +114,26 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // User Rewards & Notifications
     Route::get('/rewards', [RewardController::class, 'index'])->name('rewards.index');
+    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/thread', [MessageController::class, 'thread'])->name('messages.thread');
+    Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    Route::put('/messages/{message}', [MessageController::class, 'update'])->name('messages.update');
+    Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
+    Route::get('/messages/summary', [MessageController::class, 'summary'])->name('messages.summary');
     Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readall');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/{notification}/unread', [NotificationController::class, 'markUnread'])->name('notifications.unread');
+    Route::post('/notifications/push/token', [PushNotificationController::class, 'storeToken'])->name('notifications.push.store');
+    Route::delete('/notifications/push/token', [PushNotificationController::class, 'destroyToken'])->name('notifications.push.destroy');
 });
 
 // ==================== ADMIN PANEL ====================
@@ -100,6 +161,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Contact Messages
     Route::get('/contacts', [AdminController::class, 'contacts'])->name('contacts');
+    Route::post('/contacts/{contact}/reply', [AdminController::class, 'contactsReply'])->name('contacts.reply');
+    Route::post('/contacts/{contact}/chat', [AdminController::class, 'contactsChat'])->name('contacts.chat');
     Route::delete('/contacts/{contact}', [AdminController::class, 'contactsDestroy'])->name('contacts.destroy');
     
     // Blog Posts Management
@@ -130,10 +193,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/promotions', [PromotionController::class, 'store'])->name('promotions.store');
     Route::put('/promotions/{promotion}', [PromotionController::class, 'update'])->name('promotions.update');
     Route::delete('/promotions/{promotion}', [PromotionController::class, 'destroy'])->name('promotions.destroy');
+    Route::post('/promotions/campaigns', [PromotionCampaignController::class, 'store'])->name('promotions.campaigns.store');
 
     // Admin Notifications
     Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications');
     Route::post('/notifications', [AdminNotificationController::class, 'store'])->name('notifications.store');
+    Route::put('/notifications/{notification}', [AdminNotificationController::class, 'update'])->name('notifications.update');
+    Route::delete('/notifications/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // Rewards Management
     Route::get('/rewards', [AdminRewardController::class, 'index'])->name('rewards');
@@ -141,6 +207,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/rewards/{reward}', [AdminRewardController::class, 'update'])->name('rewards.update');
     Route::delete('/rewards/{reward}', [AdminRewardController::class, 'destroy'])->name('rewards.destroy');
     Route::put('/rewards/user/{userReward}', [AdminRewardController::class, 'updateUserReward'])->name('rewards.user.update');
+    Route::post('/rewards/user/{userReward}/rewind', [AdminRewardController::class, 'rewindUserReward'])->name('rewards.user.rewind');
+
+    // Chat Inbox
+    Route::get('/messages', [AdminMessageController::class, 'index'])->name('messages');
+    Route::get('/messages/threads', [AdminMessageController::class, 'threads'])->name('messages.threads');
+    Route::get('/messages/threads/{thread}', [AdminMessageController::class, 'show'])->name('messages.show');
+    Route::post('/messages/threads/{thread}', [AdminMessageController::class, 'store'])->name('messages.store');
+    Route::put('/messages/threads/{thread}/messages/{message}', [AdminMessageController::class, 'update'])->name('messages.update');
+    Route::delete('/messages/threads/{thread}/messages/{message}', [AdminMessageController::class, 'destroy'])->name('messages.destroy');
+
+    // Bookings Management
+    Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings');
+    Route::put('/bookings/{booking}/approve', [AdminBookingController::class, 'approve'])->name('bookings.approve');
+    Route::put('/bookings/{booking}/reject', [AdminBookingController::class, 'reject'])->name('bookings.reject');
 
     // Activity Logs
     Route::get('/activities', [ActivityController::class, 'index'])->name('activities');

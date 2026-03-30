@@ -6,7 +6,7 @@ import { getLocalizedValue } from '@/lib/i18n';
 const PROMO_COOLDOWN_DAYS = 5;
 
 export default function PromotionModal() {
-    const { promotion, flash } = usePage().props;
+    const { promotion, flash, auth } = usePage().props;
     const { locale, t } = useLocale();
     const [open, setOpen] = useState(false);
 
@@ -36,18 +36,32 @@ export default function PromotionModal() {
 
     const title = getLocalizedValue(locale, promotion, 'title');
     const message = getLocalizedValue(locale, promotion, 'message');
-    const ctaText = getLocalizedValue(locale, promotion, 'cta_text') || t('promo.claim_offer');
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="relative max-w-2xl w-full glass-dark rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                <button
-                    type="button"
-                    onClick={dismiss}
-                    className="absolute top-4 right-4 text-white/70 hover:text-white"
-                >
-                    X
-                </button>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="relative max-w-2xl w-full overflow-hidden rounded-3xl bg-white shadow-elevated border border-[color:var(--md-outline)]">
+                <div className="fire-gradient text-white px-6 py-5 sm:px-8 sm:py-6">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/90">
+                                {t('promo.special_offer')}
+                            </p>
+                            <h2 className="mt-2 text-2xl sm:text-3xl font-semibold">{title}</h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={dismiss}
+                            className="h-9 w-9 rounded-full bg-white/20 text-white text-sm font-semibold transition hover:bg-white/30"
+                            aria-label={t('promo.close')}
+                        >
+                            X
+                        </button>
+                    </div>
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
+                        <span className="h-2 w-2 rounded-full bg-[color:var(--md-success)]"></span>
+                        {t('promo.free_services')}
+                    </div>
+                </div>
                 {promotion.image && (
                     <img
                         src={promotion.image}
@@ -55,24 +69,29 @@ export default function PromotionModal() {
                         className="h-56 w-full object-cover"
                     />
                 )}
-                <div className="p-8 text-center">
-                    <p className="text-sm uppercase tracking-[0.35em] text-sky-200/80 font-semibold mb-3">{t('promo.special_offer')}</p>
-                    <h2 className="text-3xl sm:text-4xl font-semibold text-white mb-4">{title}</h2>
-                    <p className="text-white/80 text-base sm:text-lg mb-6">{message}</p>
+                <div className="p-6 sm:p-8 text-center">
+                    <p className="text-slate-600 text-base sm:text-lg mb-6">{message}</p>
                     <div className="flex flex-wrap justify-center gap-4">
-                        {promotion.cta_url && (
+                        <Link
+                            href={promotion.cta_url || route('services')}
+                            className="btn-primary"
+                            onClick={dismiss}
+                        >
+                            {t('promo.cta_continue')}
+                        </Link>
+                        {!auth?.user && (
                             <Link
-                                href={promotion.cta_url}
-                                className="rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-3 text-white font-semibold hover:shadow-xl hover:scale-[1.02] transition"
+                                href={route('login')}
+                                className="btn-secondary"
                                 onClick={dismiss}
                             >
-                                {ctaText}
+                                {t('promo.cta_login')}
                             </Link>
                         )}
                         <button
                             type="button"
                             onClick={dismiss}
-                            className="rounded-xl border border-white/20 px-6 py-3 text-white/80 font-semibold hover:text-white"
+                            className="btn-outline"
                         >
                             {t('promo.maybe_later')}
                         </button>

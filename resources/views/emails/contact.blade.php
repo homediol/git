@@ -19,19 +19,25 @@
         <div class="content">
             <div class="field">
                 <div class="label">Name:</div>
-                <div class="value">{{ $name }}</div>
+                <div class="value">{{ $name ?? ($contact->name ?? '-') }}</div>
             </div>
             <div class="field">
                 <div class="label">Email:</div>
-                <div class="value">{{ $email }}</div>
+                <div class="value">{{ $email ?? ($contact->email ?? '-') }}</div>
             </div>
+            @if(($phone ?? ($contact->phone ?? null)))
+            <div class="field">
+                <div class="label">Phone:</div>
+                <div class="value">{{ $phone ?? ($contact->phone ?? '-') }}</div>
+            </div>
+            @endif
             <div class="field">
                 <div class="label">Subject:</div>
-                <div class="value">{{ $subject }}</div>
+                <div class="value">{{ $subject ?? ($contact->subject ?? '-') }}</div>
             </div>
             <div class="field">
                 <div class="label">Message:</div>
-                <div class="value">{{ $messageContent }}</div>
+                <div class="value">{{ $messageContent ?? ($contact->message ?? '-') }}</div>
             </div>
         </div>
     </div>

@@ -13,11 +13,23 @@ class GoogleController extends Controller
 {
     public function redirect()
     {
+        if (!class_exists(\Laravel\Socialite\Facades\Socialite::class)) {
+            return redirect()
+                ->route('login')
+                ->with('error', 'Google login is not available. Please use email and password.');
+        }
+
         return Socialite::driver('google')->redirect();
     }
 
     public function callback()
     {
+        if (!class_exists(\Laravel\Socialite\Facades\Socialite::class)) {
+            return redirect()
+                ->route('login')
+                ->with('error', 'Google login is not available. Please use email and password.');
+        }
+
         $googleUser = Socialite::driver('google')->stateless()->user();
 
         if (empty($googleUser->email)) {
@@ -28,9 +40,21 @@ class GoogleController extends Controller
         $isNew = false;
 
         if (!$user) {
+            $baseUsername = Str::slug($googleUser->nickname ?: Str::before($googleUser->email, '@') ?: 'user');
+            $baseUsername = $baseUsername !== '' ? $baseUsername : 'user';
+            $username = $baseUsername;
+            $suffix = 1;
+
+            while (User::where('username', $username)->exists()) {
+                $username = $baseUsername . '-' . $suffix;
+                $suffix++;
+            }
+
             $user = User::create([
                 'name' => $googleUser->name ?? $googleUser->nickname ?? 'Google User',
+                'username' => $username,
                 'email' => $googleUser->email,
+                'phone' => null,
                 'password' => bcrypt(Str::random(32)),
             ]);
             $isNew = true;

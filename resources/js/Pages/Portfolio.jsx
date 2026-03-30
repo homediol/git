@@ -1,44 +1,49 @@
 import { Head, Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import AdCircleGrid from '@/Components/AdCircleGrid';
+import MediaPreview from '@/Components/MediaPreview';
+import { useLocale } from '@/Providers/LocaleProvider';
 
-export default function Portfolio({ auth, portfolios, categories, selectedCategory, advertisements = [], settings }) {
+export default function Portfolio({ auth, portfolios = [], categories = [], selectedCategory, advertisements = [], settings }) {
+    const { t } = useLocale();
+
     return (
         <PublicLayout auth={auth} settings={settings}>
-            <Head title="Portfolio">
-                <meta name="description" content="Explore our portfolio of creative projects and digital solutions" />
-                <meta name="keywords" content="portfolio, projects, web design, development" />
+            <Head title={t('portfolio.meta.title')}>
+                <meta name="description" content={t('portfolio.meta.description')} />
+                <meta name="keywords" content={t('portfolio.meta.keywords')} />
             </Head>
-            
+
             <div className="py-16 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <h1 className="font-display text-4xl sm:text-5xl font-semibold text-center mb-4 bg-gradient-to-r from-sky-200 to-indigo-200 bg-clip-text text-transparent">
-                        Our Portfolio
-                    </h1>
-                    <p className="text-center text-white/70 text-base sm:text-lg font-semibold mb-10 max-w-2xl mx-auto">
-                        Explore our portfolio of branding, design, and printing projects for businesses and organizations
-                    </p>
+                    <div className="text-center max-w-3xl mx-auto mb-10">
+                        <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[color:var(--md-text)]">
+                            {t('portfolio.title')}
+                        </h1>
+                        <p className="text-slate-600 mt-3">
+                            {t('portfolio.subtitle')}
+                        </p>
+                    </div>
 
-                    {/* Category Filter */}
-                    <div className="flex flex-wrap justify-center gap-4 mb-12">
+                    <div className="flex flex-wrap justify-center gap-3 mb-12">
                         <Link
                             href={route('portfolio')}
-                            className={`px-6 py-2 rounded-xl font-semibold transition ${
+                            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                                 !selectedCategory
-                                    ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-xl'
-                                    : 'glass-dark text-white/70 hover:text-white hover:shadow-xl'
+                                    ? 'btn-primary'
+                                    : 'btn-outline'
                             }`}
                         >
-                            All
+                            {t('portfolio.filter_all')}
                         </Link>
                         {categories.map((category) => (
                             <Link
                                 key={category}
                                 href={route('portfolio', { category })}
-                                className={`px-6 py-2 rounded-xl font-semibold transition ${
+                                className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                                     selectedCategory === category
-                                        ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-xl'
-                                        : 'glass-dark text-white/70 hover:text-white hover:shadow-xl'
+                                        ? 'btn-primary'
+                                        : 'btn-outline'
                                 }`}
                             >
                                 {category}
@@ -46,21 +51,22 @@ export default function Portfolio({ auth, portfolios, categories, selectedCatego
                         ))}
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-3 gap-6">
                         {portfolios.map((item) => (
-                            <div key={item.id} className="glass-dark rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-105 transition-all">
+                            <div key={item.id} className="surface overflow-hidden transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
                                 {item.image && (
-                                    <img
+                                    <MediaPreview
                                         src={item.image}
                                         alt={item.title}
-                                        loading="lazy"
-                                        className="w-full h-64 object-cover"
+                                        className="w-full h-56 object-cover"
+                                        imgProps={{ loading: 'lazy' }}
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                                     />
                                 )}
                                 <div className="p-6">
-                                    <span className="text-sm uppercase tracking-[0.2em] text-sky-200/80 font-semibold">{item.category}</span>
-                                    <h3 className="text-2xl font-semibold bg-gradient-to-r from-sky-200 to-indigo-200 bg-clip-text text-transparent mt-2 mb-3">{item.title}</h3>
-                                    <p className="text-base sm:text-lg text-white/70 font-semibold">{item.description}</p>
+                                    <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">{item.category}</span>
+                                    <h3 className="text-lg font-semibold text-[color:var(--md-text)] mt-2">{item.title}</h3>
+                                    <p className="text-sm text-slate-600 mt-2">{item.description}</p>
                                 </div>
                             </div>
                         ))}
@@ -68,7 +74,9 @@ export default function Portfolio({ auth, portfolios, categories, selectedCatego
 
                     {advertisements.length > 0 && (
                         <div className="mt-16">
-                            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-center mb-10 text-white/90">Our Partners</h2>
+                            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-center mb-6 text-[color:var(--md-text)]">
+                                {t('portfolio.partners')}
+                            </h2>
                             <AdCircleGrid advertisements={advertisements} />
                         </div>
                     )}

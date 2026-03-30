@@ -20,7 +20,7 @@ class ServiceCatalogSeeder extends Seeder
             [
                 'key' => 'photography-videography',
                 'title' => 'Photography & Videography',
-                'description' => 'Capture moments with cinematic visuals, professional editing, and creative storytelling.',
+                'description' => 'Capture weddings, maternity sessions, birthdays, graduations, funerals, live streams, and brand stories with polished visuals and creative storytelling.',
                 'image' => 'https://source.unsplash.com/1200x800/?photography,camera',
                 'sub_services' => [
                     [
@@ -29,24 +29,57 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?wedding,photography',
                     ],
                     [
-                        'title' => 'Live Streaming',
-                        'description' => 'Multi-camera live streaming for events and ceremonies.',
-                        'image' => 'https://source.unsplash.com/1200x800/?livestream,camera',
+                        'title' => 'Maternity Sessions',
+                        'description' => 'Warm and elegant maternity sessions that preserve every milestone beautifully.',
+                        'image' => 'https://source.unsplash.com/1200x800/?maternity,photography',
                     ],
                     [
-                        'title' => 'Production',
-                        'description' => 'Commercial and creative production for brands and artists.',
-                        'image' => 'https://source.unsplash.com/1200x800/?film,production',
+                        'title' => 'Birthdays',
+                        'aliases' => ['Birthday', 'Birthday Sessions'],
+                        'description' => 'Event photography and highlight videos for birthdays and celebrations.',
+                        'image' => 'https://source.unsplash.com/1200x800/?birthday,party',
                     ],
                     [
-                        'title' => 'Funeral',
-                        'description' => 'Respectful coverage and memorial storytelling.',
+                        'title' => 'Graduation Sessions',
+                        'description' => 'Graduation portraits and event coverage that celebrate every achievement.',
+                        'image' => 'https://source.unsplash.com/1200x800/?graduation,portrait',
+                    ],
+                    [
+                        'title' => 'Save the Date Sessions',
+                        'description' => 'Stylish save the date photo and video sessions for couples and special announcements.',
+                        'image' => 'https://source.unsplash.com/1200x800/?couple,engagement',
+                    ],
+                    [
+                        'title' => 'Adventure Sessions',
+                        'description' => 'Outdoor and destination sessions designed for bold stories and scenic memories.',
+                        'image' => 'https://source.unsplash.com/1200x800/?adventure,photography',
+                    ],
+                    [
+                        'title' => 'Personal Sessions',
+                        'description' => 'Personal portraits for lifestyle, branding, and individual storytelling.',
+                        'image' => 'https://source.unsplash.com/1200x800/?portrait,photography',
+                    ],
+                    [
+                        'title' => 'Drone Services',
+                        'description' => 'Aerial photo and video coverage for events, campaigns, and cinematic reveals.',
+                        'image' => 'https://source.unsplash.com/1200x800/?drone,aerial',
+                    ],
+                    [
+                        'title' => 'Real Estate',
+                        'aliases' => ['Real Estate Coverage'],
+                        'description' => 'Property photography and walkthrough videos for homes, rentals, and developments.',
+                        'image' => 'https://source.unsplash.com/1200x800/?real-estate,interior',
+                    ],
+                    [
+                        'title' => 'Funerals',
+                        'aliases' => ['Funeral', 'Funeral Coverage'],
+                        'description' => 'Respectful photo and video coverage for funerals and memorial gatherings.',
                         'image' => 'https://source.unsplash.com/1200x800/?memorial,ceremony',
                     ],
                     [
-                        'title' => 'Birthday',
-                        'description' => 'Event photography and highlight video for birthdays.',
-                        'image' => 'https://source.unsplash.com/1200x800/?birthday,party',
+                        'title' => 'Live Streaming',
+                        'description' => 'Multi-camera live streaming for events, ceremonies, and online audiences.',
+                        'image' => 'https://source.unsplash.com/1200x800/?livestream,camera',
                     ],
                 ],
             ],
@@ -99,6 +132,12 @@ class ServiceCatalogSeeder extends Seeder
                 'title' => 'Software Development',
                 'description' => 'Modern web and mobile solutions built for performance and growth.',
                 'image' => 'https://source.unsplash.com/1200x800/?software,code',
+            ],
+            [
+                'key' => 'sound-system',
+                'title' => 'Sound System',
+                'description' => 'Professional sound setup for weddings, funerals, celebrations, conferences, and live events.',
+                'image' => 'https://source.unsplash.com/1200x800/?sound-system,event',
             ],
         ];
 
@@ -154,13 +193,7 @@ class ServiceCatalogSeeder extends Seeder
             }
 
             foreach ($subServices as $subServiceData) {
-                $child = Service::firstOrCreate(
-                    ['title' => $subServiceData['title'], 'parent_service_id' => $service->id],
-                    [
-                        'description' => $subServiceData['description'] ?? null,
-                        'image' => $subServiceData['image'] ?? null,
-                    ]
-                );
+                $child = $this->syncSubService($service, $subServiceData);
 
                 $childUpdates = [];
 
@@ -186,5 +219,41 @@ class ServiceCatalogSeeder extends Seeder
         }
 
         return Str::startsWith($image, '/images/');
+    }
+
+    private function syncSubService(Service $service, array $subServiceData): Service
+    {
+        $candidateTitles = array_values(array_filter(array_unique([
+            $subServiceData['title'] ?? null,
+            ...($subServiceData['aliases'] ?? []),
+        ])));
+
+        $child = Service::query()
+            ->where('parent_service_id', $service->id)
+            ->where(function ($query) use ($candidateTitles) {
+                foreach ($candidateTitles as $index => $title) {
+                    if ($index === 0) {
+                        $query->where('title', $title);
+                    } else {
+                        $query->orWhere('title', $title);
+                    }
+                }
+            })
+            ->first();
+
+        if (!$child) {
+            return Service::create([
+                'title' => $subServiceData['title'],
+                'description' => $subServiceData['description'] ?? null,
+                'image' => $subServiceData['image'] ?? null,
+                'parent_service_id' => $service->id,
+            ]);
+        }
+
+        if ($child->title !== $subServiceData['title']) {
+            $child->update(['title' => $subServiceData['title']]);
+        }
+
+        return $child;
     }
 }

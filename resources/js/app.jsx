@@ -5,13 +5,14 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import axios from 'axios';
 import { LocaleProvider } from '@/Providers/LocaleProvider';
+import { ThemeProvider } from '@/Providers/ThemeProvider';
 
-// Configure axios to include CSRF token
+// Use Laravel's XSRF cookie so auth/session refreshes after login or register
+// do not leave the SPA sending a stale CSRF token header.
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-const token = document.head.querySelector('meta[name="csrf-token"]');
-if (token) {
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
-}
+axios.defaults.withCredentials = true;
+axios.defaults.withXSRFToken = true;
+delete axios.defaults.headers.common['X-CSRF-TOKEN'];
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -26,9 +27,15 @@ createInertiaApp({
         const root = createRoot(el);
 
         root.render(
-            <LocaleProvider>
-                <App {...props} />
-            </LocaleProvider>
+            <App {...props}>
+                {({ Component, props: pageProps, key }) => (
+                    <ThemeProvider>
+                        <LocaleProvider>
+                            <Component key={key} {...pageProps} />
+                        </LocaleProvider>
+                    </ThemeProvider>
+                )}
+            </App>
         );
     },
     progress: {

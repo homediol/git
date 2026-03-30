@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\FirebasePushService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,12 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'firebaseConfigured' => app(FirebasePushService::class)->isConfigured(),
+            'notificationSettings' => [
+                'in_app_notifications_enabled' => (bool) $request->user()->in_app_notifications_enabled,
+                'push_notifications_enabled' => (bool) $request->user()->push_notifications_enabled,
+                'notification_preferences' => $request->user()->resolvedNotificationPreferences(),
+            ],
         ]);
     }
 
@@ -38,6 +45,36 @@ class ProfileController extends Controller
         $request->user()->save();
 
         return Redirect::route('profile.edit');
+    }
+
+    public function updateNotifications(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'in_app_notifications_enabled' => ['required', 'boolean'],
+            'push_notifications_enabled' => ['required', 'boolean'],
+            'notification_preferences' => ['nullable', 'array'],
+            'notification_preferences.general.in_app' => ['nullable', 'boolean'],
+            'notification_preferences.general.push' => ['nullable', 'boolean'],
+            'notification_preferences.chat.in_app' => ['nullable', 'boolean'],
+            'notification_preferences.chat.push' => ['nullable', 'boolean'],
+            'notification_preferences.booking.in_app' => ['nullable', 'boolean'],
+            'notification_preferences.booking.push' => ['nullable', 'boolean'],
+            'notification_preferences.promotion.in_app' => ['nullable', 'boolean'],
+            'notification_preferences.promotion.push' => ['nullable', 'boolean'],
+            'notification_preferences.reward.in_app' => ['nullable', 'boolean'],
+            'notification_preferences.reward.push' => ['nullable', 'boolean'],
+        ]);
+
+        $request->user()->forceFill([
+            'in_app_notifications_enabled' => (bool) $validated['in_app_notifications_enabled'],
+            'push_notifications_enabled' => (bool) $validated['push_notifications_enabled'],
+            'notification_preferences' => array_replace_recursive(
+                $request->user()::defaultNotificationPreferences(),
+                $validated['notification_preferences'] ?? [],
+            ),
+        ])->save();
+
+        return Redirect::route('profile.edit')->with('success', 'Notification settings updated.');
     }
 
     /**

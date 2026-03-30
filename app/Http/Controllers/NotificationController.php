@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PromotionCampaignRecipient;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
@@ -25,6 +26,7 @@ class NotificationController extends Controller
     {
         $this->authorizeNotification($request, $notification);
         $notification->markAsRead();
+        $this->syncCampaignRecipientReadState($notification, true);
 
         return response()->json(['status' => 'ok']);
     }
@@ -33,13 +35,16 @@ class NotificationController extends Controller
     {
         $this->authorizeNotification($request, $notification);
         $notification->update(['read_at' => null]);
+        $this->syncCampaignRecipientReadState($notification, false);
 
         return response()->json(['status' => 'ok']);
     }
 
     public function markAllRead(Request $request)
     {
-        $request->user()->unreadNotifications->markAsRead();
+        $notifications = $request->user()->unreadNotifications;
+        $notifications->markAsRead();
+        $notifications->each(fn (DatabaseNotification $notification) => $this->syncCampaignRecipientReadState($notification, true));
 
         return response()->json(['status' => 'ok']);
     }
@@ -70,9 +75,30 @@ class NotificationController extends Controller
                 'action_text_en' => $notification->data['action_text_en'] ?? null,
                 'action_text_fr' => $notification->data['action_text_fr'] ?? null,
                 'type' => $notification->data['type'] ?? 'info',
+                'notification_type' => $notification->data['notification_type'] ?? 'general',
+                'media_url' => $notification->data['media_url'] ?? null,
+                'media_type' => $notification->data['media_type'] ?? null,
+                'media_name' => $notification->data['media_name'] ?? null,
                 'read_at' => $notification->read_at,
                 'created_at' => $notification->created_at,
             ];
         })->all();
+    }
+
+    private function syncCampaignRecipientReadState(DatabaseNotification $notification, bool $isRead): void
+    {
+        $recipientId = $notification->data['campaign_recipient_id'] ?? null;
+        if (!$recipientId) {
+            return;
+        }
+
+        $recipient = PromotionCampaignRecipient::find($recipientId);
+        if (!$recipient) {
+            return;
+        }
+
+        $recipient->update([
+            'opened_at' => $isRead ? ($recipient->opened_at ?? now()) : null,
+        ]);
     }
 }

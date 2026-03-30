@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ChatMessage;
+use App\Models\ChatThread;
 use App\Models\Promotion;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -76,6 +79,10 @@ class HandleInertiaRequests extends Middleware
                         'action_text_en' => $notification->data['action_text_en'] ?? null,
                         'action_text_fr' => $notification->data['action_text_fr'] ?? null,
                         'type' => $notification->data['type'] ?? 'info',
+                        'notification_type' => $notification->data['notification_type'] ?? 'general',
+                        'media_url' => $notification->data['media_url'] ?? null,
+                        'media_type' => $notification->data['media_type'] ?? null,
+                        'media_name' => $notification->data['media_name'] ?? null,
                         'read_at' => $notification->read_at,
                         'created_at' => $notification->created_at,
                     ];
@@ -84,6 +91,60 @@ class HandleInertiaRequests extends Middleware
                 return [
                     'items' => $items,
                     'unread_count' => $user->unreadNotifications()->count(),
+                ];
+            },
+            'chatSummary' => function () use ($request) {
+                $user = $request->user();
+
+                if (
+                    !$user
+                    || !Schema::hasTable('chat_threads')
+                    || !Schema::hasTable('chat_messages')
+                ) {
+                    return null;
+                }
+
+                if ($user->isAdmin()) {
+                    $unreadCount = ChatMessage::query()
+                        ->whereNull('read_at')
+                        ->where(function ($builder) {
+                            $builder->whereNull('sender_id')
+                                ->orWhereHas('sender', function ($senderQuery) {
+                                    $senderQuery->whereNull('role')->orWhere('role', '!=', 'admin');
+                                });
+                        })
+                        ->count();
+
+                    $openThreads = ChatThread::query()
+                        ->whereHas('messages', function ($query) {
+                            $query->whereNull('read_at')->where(function ($builder) {
+                                $builder->whereNull('sender_id')
+                                    ->orWhereHas('sender', function ($senderQuery) {
+                                        $senderQuery->whereNull('role')->orWhere('role', '!=', 'admin');
+                                    });
+                            });
+                        })
+                        ->count();
+
+                    return [
+                        'unread_count' => $unreadCount,
+                        'open_threads' => $openThreads,
+                    ];
+                }
+
+                $thread = ChatThread::query()->where('user_id', $user->id)->first();
+                $unreadCount = $thread
+                    ? $thread->messages()
+                        ->whereNull('read_at')
+                        ->whereHas('sender', function ($builder) {
+                            $builder->where('role', 'admin');
+                        })
+                        ->count()
+                    : 0;
+
+                return [
+                    'unread_count' => $unreadCount,
+                    'thread_id' => $thread?->id,
                 ];
             },
             'seo' => [

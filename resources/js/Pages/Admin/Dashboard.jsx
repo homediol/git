@@ -1,7 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useLocale } from '@/Providers/LocaleProvider';
 
-export default function AdminDashboard({ stats }) {
+export default function AdminDashboard({ stats, recentNotifications = [] }) {
+    const { t } = useLocale();
+
     return (
         <AuthenticatedLayout
             header={
@@ -48,8 +51,24 @@ export default function AdminDashboard({ stats }) {
                     <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.userRewards}</p>
                 </div>
                 <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Bookings</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.bookings}</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Pending Bookings</p>
+                    <p className="text-2xl font-semibold text-amber-600 mt-2">{stats.pendingBookings}</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
                     <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Notifications</p>
                     <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.notifications}</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Chat Threads</p>
+                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.chatThreads}</p>
+                </div>
+                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
+                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Unread Chats</p>
+                    <p className="text-2xl font-semibold text-orange-600 mt-2">{stats.unreadChatMessages}</p>
                 </div>
                 <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
                     <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Activity Logs</p>
@@ -96,6 +115,14 @@ export default function AdminDashboard({ stats }) {
                         <h3 className="text-base font-semibold text-slate-800 mb-1">Rewards</h3>
                         <p className="text-sm text-slate-600">Manage reward catalog</p>
                     </Link>
+                    <Link href={route('admin.messages')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
+                        <h3 className="text-base font-semibold text-slate-800 mb-1">Customer Inbox</h3>
+                        <p className="text-sm text-slate-600">Reply to live user conversations</p>
+                    </Link>
+                    <Link href={route('admin.bookings')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
+                        <h3 className="text-base font-semibold text-slate-800 mb-1">Bookings</h3>
+                        <p className="text-sm text-slate-600">Approve or reject client requests</p>
+                    </Link>
                     <Link href={route('admin.contacts')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
                         <h3 className="text-base font-semibold text-slate-800 mb-1">Contact Messages</h3>
                         <p className="text-sm text-slate-600">Review client inquiries</p>
@@ -113,6 +140,34 @@ export default function AdminDashboard({ stats }) {
                         <p className="text-sm text-slate-600">Update header slider</p>
                     </Link>
                 </div>
+            </div>
+
+            <div className="mt-6 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-slate-200/60">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-lg font-semibold text-slate-900">{t('admin.notifications.title')}</h3>
+                        <p className="text-sm text-slate-600 mt-1">{t('admin.notifications.subtitle')}</p>
+                    </div>
+                    <Link href={route('admin.notifications')} className="text-xs font-semibold text-sky-600 hover:text-sky-800">
+                        {t('admin.notifications.view_all')}
+                    </Link>
+                </div>
+                {recentNotifications.length === 0 ? (
+                    <p className="text-sm text-slate-500 mt-4">{t('admin.notifications.empty')}</p>
+                ) : (
+                    <div className="mt-4 space-y-3">
+                        {recentNotifications.map((item) => (
+                            <div key={item.id} className="rounded-2xl border border-white/60 bg-white/70 p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                                    <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">{item.type}</span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">{item.message}</p>
+                                <p className="text-[10px] text-slate-400 mt-2">{new Date(item.created_at).toLocaleString()}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="mt-6">

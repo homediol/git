@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useLocale } from '@/Providers/LocaleProvider';
 
 export default function AdSlider({ advertisements = [] }) {
+    const { t } = useLocale();
     const [current, setCurrent] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const activeAds = Array.isArray(advertisements) ? advertisements.filter(ad => ad.active) : [];
-
-    console.log('AdSlider - Total ads:', advertisements.length, 'Active ads:', activeAds.length);
-    if (activeAds.length > 0) {
-        console.log('First ad media path:', activeAds[0].media, 'Type:', activeAds[0].type);
-    }
 
     useEffect(() => {
         if (activeAds.length === 0 || isPaused) return;
@@ -25,9 +22,11 @@ export default function AdSlider({ advertisements = [] }) {
 
     if (activeAds.length === 0) {
         return (
-            <div className="w-full h-64 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl flex items-center justify-center">
-                <p className="text-white text-xl">No advertisements available</p>
-                <p className="text-white text-sm mt-2">Total: {advertisements.length} | Active: {activeAds.length}</p>
+            <div className="w-full h-64 surface flex flex-col items-center justify-center">
+                <p className="text-[color:var(--md-text)] text-lg font-semibold">{t('ads.empty')}</p>
+                <p className="text-slate-500 text-sm mt-2">
+                    {t('ads.total')}: {advertisements.length} | {t('ads.active')}: {activeAds.length}
+                </p>
             </div>
         );
     }
@@ -36,12 +35,12 @@ export default function AdSlider({ advertisements = [] }) {
 
     return (
         <div 
-            className="relative w-full h-80 bg-gradient-to-br from-purple-900 via-pink-900 to-blue-900 rounded-3xl overflow-hidden shadow-2xl group"
+            className="relative w-full h-80 surface overflow-hidden shadow-elevated group"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
         >
             {/* Animated background overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-blue-500/20 animate-pulse"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-[rgba(255,109,0,0.12)] via-[rgba(251,188,5,0.12)] to-[rgba(66,133,244,0.12)]"></div>
             
             {activeAds.map((ad, index) => (
                 <div
@@ -97,9 +96,9 @@ export default function AdSlider({ advertisements = [] }) {
                     )}
                     
                     {(ad.title || ad.description) && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-8 rounded-b-3xl">
-                            {ad.title && <h3 className="text-white text-3xl font-bold mb-2 drop-shadow-lg">{ad.title}</h3>}
-                            {ad.description && <p className="text-white/95 text-base drop-shadow-md">{ad.description}</p>}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
+                            {ad.title && <h3 className="text-white text-2xl font-semibold mb-2 drop-shadow">{ad.title}</h3>}
+                            {ad.description && <p className="text-white/90 text-sm drop-shadow">{ad.description}</p>}
                         </div>
                     )}
                 </div>
@@ -124,7 +123,7 @@ export default function AdSlider({ advertisements = [] }) {
                     
                     <button
                         onClick={() => setCurrent((prev) => (prev - 1 + activeAds.length) % activeAds.length)}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-4 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-xl hover:scale-110"
+                        className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[color:var(--md-text)] p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-elevated"
                         aria-label="Previous slide"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +132,7 @@ export default function AdSlider({ advertisements = [] }) {
                     </button>
                     <button
                         onClick={() => setCurrent((prev) => (prev + 1) % activeAds.length)}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-4 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-xl hover:scale-110"
+                        className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[color:var(--md-text)] p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-elevated"
                         aria-label="Next slide"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,8 +143,8 @@ export default function AdSlider({ advertisements = [] }) {
             )}
 
             {isPaused && (
-                <div className="absolute top-6 right-6 bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg animate-pulse">
-                    ⏸ Paused
+                <div className="absolute top-6 right-6 bg-white/90 text-[color:var(--md-text)] px-4 py-2 rounded-full text-xs font-semibold shadow-elevated">
+                    {t('ads.paused')}
                 </div>
             )}
         </div>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,7 +30,38 @@
         <link rel="apple-touch-icon" href="{{ asset('favicons/favicon.svg') }}">
         
         <!-- Theme Color -->
-        <meta name="theme-color" content="#9333EA">
+        <meta name="theme-color" content="#F8F9FA">
+
+        <script>
+            window.PAVONA_FIREBASE = {
+                enabled: {{ app(\App\Services\FirebasePushService::class)->isConfigured() ? 'true' : 'false' }},
+                config: @json(app(\App\Services\FirebasePushService::class)->webConfig()),
+                sdkVersion: @json(app(\App\Services\FirebasePushService::class)->sdkVersion()),
+            };
+        </script>
+
+        @if(app(\App\Services\FirebasePushService::class)->isConfigured())
+            <script src="https://www.gstatic.com/firebasejs/{{ app(\App\Services\FirebasePushService::class)->sdkVersion() }}/firebase-app-compat.js"></script>
+            <script src="https://www.gstatic.com/firebasejs/{{ app(\App\Services\FirebasePushService::class)->sdkVersion() }}/firebase-messaging-compat.js"></script>
+        @endif
+
+        <script>
+            (() => {
+                try {
+                    const storedTheme = localStorage.getItem('pavona_theme');
+                    const theme = storedTheme === 'dark' ? 'dark' : 'light';
+                    document.documentElement.dataset.theme = theme;
+                    document.documentElement.style.colorScheme = theme;
+                    const themeMeta = document.querySelector('meta[name="theme-color"]');
+                    if (themeMeta) {
+                        themeMeta.setAttribute('content', theme === 'dark' ? '#07111F' : '#F8F9FA');
+                    }
+                } catch (error) {
+                    document.documentElement.dataset.theme = 'light';
+                    document.documentElement.style.colorScheme = 'light';
+                }
+            })();
+        </script>
 
         <title inertia>{{ config('app.name', 'Pavona Studios') }}</title>
 

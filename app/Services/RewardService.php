@@ -46,21 +46,24 @@ class RewardService
             ]);
 
             $user->notify(new GenericNotification([
-                'title' => 'Impano zo kwakira zafunguwe!',
-                'title_rw' => 'Impano zo kwakira zafunguwe!',
-                'title_en' => 'Welcome Rewards Unlocked!',
-                'title_fr' => 'Recompenses de bienvenue debloquees!',
-                'message' => 'Wabonye serivisi z\'ubuntu: ' . $namesRw . '.',
-                'message_rw' => 'Wabonye serivisi z\'ubuntu: ' . $namesRw . '.',
-                'message_en' => 'You just received free services: ' . $namesEn . '.',
-                'message_fr' => 'Vous avez recu des services gratuits : ' . $namesFr . '.',
+                'title' => 'Impano z\'ubuntu ku bakiriya bashya',
+                'title_rw' => 'Impano z\'ubuntu ku bakiriya bashya',
+                'title_en' => 'FREE services for new users',
+                'title_fr' => 'Services gratuits pour nouveaux utilisateurs',
+                'message' => '🎉 Muraho neza! Mwakiriye serivisi z\'ubuntu: ' . $namesRw . '.',
+                'message_rw' => '🎉 Muraho neza! Mwakiriye serivisi z\'ubuntu: ' . $namesRw . '.',
+                'message_en' => '🎉 Congratulations! You received free services: ' . $namesEn . '.',
+                'message_fr' => '🎉 Felicitations ! Vous avez recu des services gratuits : ' . $namesFr . '.',
                 'action_url' => route('rewards.index'),
                 'action_text' => 'Reba impano',
                 'action_text_rw' => 'Reba impano',
                 'action_text_en' => 'View Rewards',
                 'action_text_fr' => 'Voir les recompenses',
                 'type' => 'success',
+                'notification_type' => 'reward',
             ]));
+
+            $this->notifyAdmins($user, $assigned);
         }
 
         return $rewards;
@@ -68,49 +71,68 @@ class RewardService
 
     public function ensureDefaultRewards(): Collection
     {
+        $graphicsVideoPath = '/media/rewards/graphics-printing.mp4';
+        $graphicsVideoFullPath = public_path(ltrim($graphicsVideoPath, '/'));
+        $graphicsVideoAvailable = file_exists($graphicsVideoFullPath);
+
         $defaults = [
             [
-                'name' => 'Gufotora ku buntu',
-                'name_rw' => 'Gufotora ku buntu',
-                'name_en' => 'Free Photo Shoot',
-                'name_fr' => 'Seance photo gratuite',
-                'slug' => 'free-photo-shoot',
-                'description' => 'Isesiyo y\'ifoto y\'ubuntu igufasha gufata amafoto meza.',
-                'description_rw' => 'Isesiyo y\'ifoto y\'ubuntu igufasha gufata amafoto meza.',
-                'description_en' => 'A complimentary photo session to capture your best moments.',
-                'description_fr' => 'Seance photo gratuite pour capturer vos meilleurs moments.',
-                'image' => 'https://source.unsplash.com/1200x800/?photoshoot,portrait',
+                'name' => 'Ifoto na videwo ku buntu',
+                'name_rw' => 'Ifoto na videwo ku buntu',
+                'name_en' => 'Photography & Videography',
+                'name_fr' => 'Photographie et videographie',
+                'slug' => 'photography-videography',
+                'description' => 'Ifoto na videwo by\'ubuntu byongera ingufu ku bikorwa byawe.',
+                'description_rw' => 'Ifoto na videwo by\'ubuntu byongera ingufu ku bikorwa byawe.',
+                'description_en' => 'Free photography and videography session to elevate your brand story.',
+                'description_fr' => 'Seance photo et video gratuite pour sublimer votre marque.',
+                'image' => 'https://source.unsplash.com/1200x800/?photography,videography',
+                'expires_after_days' => 45,
+            ],
+            [
+                'name' => 'Igishushanyo n\'icapiro ku buntu',
+                'name_rw' => 'Igishushanyo n\'icapiro ku buntu',
+                'name_en' => 'Graphics & Printing Design',
+                'name_fr' => 'Design graphique et impression',
+                'slug' => 'graphics-printing-design',
+                'description' => 'Igishushanyo cy\'ubuntu n\'igerageza ry\'icapiro ku mushinga wawe.',
+                'description_rw' => 'Igishushanyo cy\'ubuntu n\'igerageza ry\'icapiro ku mushinga wawe.',
+                'description_en' => 'Free graphic design and print-ready layout for your campaign.',
+                'description_fr' => 'Design graphique gratuit et preparation a l\'impression.',
+                'image' => $graphicsVideoAvailable
+                    ? $graphicsVideoPath
+                    : 'https://source.unsplash.com/1200x800/?graphic-design,printing',
                 'expires_after_days' => 45,
             ],
             [
                 'name' => 'Make up ku buntu',
                 'name_rw' => 'Make up ku buntu',
-                'name_en' => 'Free Make Up',
-                'name_fr' => 'Maquillage gratuit',
-                'slug' => 'free-make-up',
-                'description' => 'Gutunganya mu maso k\'umwuga ku birori cyangwa studio.',
-                'description_rw' => 'Gutunganya mu maso k\'umwuga ku birori cyangwa studio.',
-                'description_en' => 'Professional makeup session for special events or studio work.',
-                'description_fr' => 'Seance de maquillage professionnelle pour evenements speciaux.',
+                'name_en' => 'Make Up',
+                'name_fr' => 'Maquillage',
+                'slug' => 'make-up',
+                'description' => 'Gutunganya mu maso k\'umwuga ku mafoto cyangwa ibirori.',
+                'description_rw' => 'Gutunganya mu maso k\'umwuga ku mafoto cyangwa ibirori.',
+                'description_en' => 'Professional makeup session for shoots and events.',
+                'description_fr' => 'Seance de maquillage professionnelle pour shootings et evenements.',
                 'image' => 'https://source.unsplash.com/1200x800/?makeup,artist',
                 'expires_after_days' => 45,
             ],
             [
-                'name' => 'Gushushanya urubuga ku buntu',
-                'name_rw' => 'Gushushanya urubuga ku buntu',
-                'name_en' => 'Free Website Design',
-                'name_fr' => 'Conception de site gratuite',
-                'slug' => 'free-website-design',
-                'description' => 'Igishushanyo cy\'urubuga kigenewe ikirango cyangwa ibirori byawe.',
-                'description_rw' => 'Igishushanyo cy\'urubuga kigenewe ikirango cyangwa ibirori byawe.',
-                'description_en' => 'Landing page design tailored for your brand or event.',
-                'description_fr' => 'Conception gratuite d\'une page web adaptee a votre marque.',
-                'image' => 'https://source.unsplash.com/1200x800/?webdesign,workspace',
+                'name' => 'Software development ku buntu',
+                'name_rw' => 'Software development ku buntu',
+                'name_en' => 'Software Development',
+                'name_fr' => 'Developpement logiciel',
+                'slug' => 'software-development',
+                'description' => 'Igenamigambi ry\'ubuntu rya software igufasha gutangiza igitekerezo.',
+                'description_rw' => 'Igenamigambi ry\'ubuntu rya software igufasha gutangiza igitekerezo.',
+                'description_en' => 'Free software discovery session and product roadmap.',
+                'description_fr' => 'Session gratuite de decouverte et feuille de route logicielle.',
+                'image' => 'https://source.unsplash.com/1200x800/?software,development',
                 'expires_after_days' => 60,
             ],
         ];
 
-        return collect($defaults)->map(function (array $rewardData) {
+        return collect($defaults)->map(function (array $rewardData) use ($graphicsVideoAvailable, $graphicsVideoPath) {
             $reward = Reward::firstOrCreate(
                 ['slug' => $rewardData['slug']],
                 $rewardData
@@ -123,7 +145,9 @@ class RewardService
                 }
             }
 
-            if (empty($reward->image) && !empty($rewardData['image'])) {
+            if ($reward->slug === 'graphics-printing-design' && $graphicsVideoAvailable && $reward->image !== $graphicsVideoPath) {
+                $updates['image'] = $graphicsVideoPath;
+            } elseif (empty($reward->image) && !empty($rewardData['image'])) {
                 $updates['image'] = $rewardData['image'];
             }
 
@@ -137,5 +161,40 @@ class RewardService
 
             return $reward;
         });
+    }
+
+    private function notifyAdmins(User $user, Collection $assigned): void
+    {
+        $admins = User::where('role', 'admin')->get();
+
+        if ($admins->isEmpty()) {
+            return;
+        }
+
+        $namesRw = $assigned->pluck('name_rw')->filter()->implode(', ') ?: $assigned->pluck('name')->implode(', ');
+        $namesEn = $assigned->pluck('name_en')->filter()->implode(', ') ?: $assigned->pluck('name')->implode(', ');
+        $namesFr = $assigned->pluck('name_fr')->filter()->implode(', ') ?: $assigned->pluck('name')->implode(', ');
+
+        $phone = $user->phone ?: 'N/A';
+
+        foreach ($admins as $admin) {
+            $admin->notify(new GenericNotification([
+                'title' => 'Umukiriya mushya yakiriye impano',
+                'title_rw' => 'Umukiriya mushya yakiriye impano',
+                'title_en' => 'New user received rewards',
+                'title_fr' => 'Nouveau client : recompenses attribuees',
+                'message' => "Umukiriya {$user->name} ({$user->email}, {$phone}) yakiriye: {$namesRw}.",
+                'message_rw' => "Umukiriya {$user->name} ({$user->email}, {$phone}) yakiriye: {$namesRw}.",
+                'message_en' => "User {$user->name} ({$user->email}, {$phone}) received: {$namesEn}.",
+                'message_fr' => "Client {$user->name} ({$user->email}, {$phone}) a recu : {$namesFr}.",
+                'action_url' => route('admin.rewards'),
+                'action_text' => 'Reba impano',
+                'action_text_rw' => 'Reba impano',
+                'action_text_en' => 'View Rewards',
+                'action_text_fr' => 'Voir les recompenses',
+                'type' => 'info',
+                'notification_type' => 'reward',
+            ]));
+        }
     }
 }

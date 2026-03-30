@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AdminContactReplyMail;
+use App\Models\Booking;
+use App\Models\ChatMessage;
+use App\Models\ChatThread;
 use App\Models\Service;
 use App\Models\Portfolio;
 use App\Models\Contact;
@@ -10,10 +14,15 @@ use App\Models\Advertisement;
 use App\Models\Team;
 use App\Models\Promotion;
 use App\Models\Reward;
+use App\Models\User;
 use App\Models\UserReward;
 use App\Models\UserActivity;
+use App\Services\SupportChatService;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
@@ -28,6 +37,20 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
+        $admin = auth()->user();
+        $bookingTableExists = Schema::hasTable('bookings');
+        $recentNotifications = $admin
+            ? $admin->notifications()->latest()->take(6)->get()->map(function (DatabaseNotification $notification) {
+                return [
+                    'id' => $notification->id,
+                    'title' => $notification->data['title'] ?? 'Update',
+                    'message' => $notification->data['message'] ?? '',
+                    'type' => $notification->data['type'] ?? 'info',
+                    'created_at' => $notification->created_at,
+                ];
+            })->all()
+            : [];
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'services' => Service::count(),
@@ -40,7 +63,22 @@ class AdminController extends Controller
                 'userRewards' => UserReward::count(),
                 'notifications' => DatabaseNotification::count(),
                 'activities' => UserActivity::count(),
-            ]
+                'bookings' => $bookingTableExists ? Booking::count() : 0,
+                'pendingBookings' => $bookingTableExists ? Booking::where('status', 'pending')->count() : 0,
+                'chatThreads' => Schema::hasTable('chat_threads') ? ChatThread::count() : 0,
+                'unreadChatMessages' => Schema::hasTable('chat_messages')
+                    ? ChatMessage::query()
+                        ->whereNull('read_at')
+                        ->where(function ($query) {
+                            $query->whereNull('sender_id')
+                                ->orWhereHas('sender', function ($senderQuery) {
+                                    $senderQuery->whereNull('role')->orWhere('role', '!=', 'admin');
+                                });
+                        })
+                        ->count()
+                    : 0,
+            ],
+            'recentNotifications' => $recentNotifications,
         ]);
     }
 
@@ -64,12 +102,13 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('services', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'services');
         }
 
         $validated['parent_service_id'] = null;
@@ -85,12 +124,13 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('services', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'services');
         }
 
         $service->update($validated);
@@ -125,12 +165,13 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('sub-services', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'sub-services');
         }
 
         $validated['parent_service_id'] = $service->id;
@@ -150,12 +191,13 @@ class AdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('sub-services', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'sub-services');
         } else {
             unset($validated['image']);
         }
@@ -192,12 +234,13 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('portfolio', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'portfolio');
         }
 
         Portfolio::create($validated);
@@ -210,12 +253,13 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('portfolio', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'portfolio');
         }
 
         $portfolio->update($validated);
@@ -232,9 +276,171 @@ class AdminController extends Controller
     
     public function contacts()
     {
+        $contacts = Contact::query()->latest()->get();
+        $emails = $contacts
+            ->pluck('email')
+            ->filter()
+            ->map(fn ($email) => trim((string) $email))
+            ->unique()
+            ->values();
+        $phones = $contacts
+            ->pluck('phone')
+            ->filter()
+            ->map(fn ($phone) => trim((string) $phone))
+            ->unique()
+            ->values();
+
+        $usersByEmail = $emails->isEmpty()
+            ? collect()
+            : User::query()
+                ->whereIn('email', $emails->all())
+                ->get()
+                ->keyBy(fn (User $user) => strtolower((string) $user->email));
+
+        $threads = ($emails->isEmpty() && $phones->isEmpty())
+            ? collect()
+            : ChatThread::query()
+                ->with(['user', 'assignedAdmin', 'latestMessage.sender'])
+                ->where(function ($query) use ($emails, $phones) {
+                    if ($emails->isNotEmpty()) {
+                        $query->whereIn('guest_email', $emails->all())
+                            ->orWhereHas('user', function ($userQuery) use ($emails) {
+                                $userQuery->whereIn('email', $emails->all());
+                            });
+                    }
+
+                    if ($phones->isNotEmpty()) {
+                        $phonesArray = $phones->all();
+
+                        if ($emails->isNotEmpty()) {
+                            $query->orWhereIn('guest_phone', $phonesArray)
+                                ->orWhereHas('user', function ($userQuery) use ($phonesArray) {
+                                    $userQuery->whereIn('phone', $phonesArray);
+                                });
+                        } else {
+                            $query->whereIn('guest_phone', $phonesArray)
+                                ->orWhereHas('user', function ($userQuery) use ($phonesArray) {
+                                    $userQuery->whereIn('phone', $phonesArray);
+                                });
+                        }
+                    }
+                })
+                ->orderByDesc('last_message_at')
+                ->orderByDesc('updated_at')
+                ->get();
+
+        $threadsByUserId = $threads
+            ->filter(fn (ChatThread $thread) => $thread->user_id)
+            ->groupBy('user_id')
+            ->map(fn ($group) => $group->first());
+
+        $threadsByEmail = $threads
+            ->filter(fn (ChatThread $thread) => filled($thread->guest_email))
+            ->groupBy(fn (ChatThread $thread) => strtolower((string) $thread->guest_email))
+            ->map(fn ($group) => $group->first());
+
+        $threadsByPhone = $threads
+            ->filter(fn (ChatThread $thread) => filled($thread->guest_phone))
+            ->groupBy(fn (ChatThread $thread) => trim((string) $thread->guest_phone))
+            ->map(fn ($group) => $group->first());
+
         return Inertia::render('Admin/Contacts/Index', [
-            'contacts' => Contact::latest()->get(),
+            'contacts' => $contacts->map(function (Contact $contact) use ($usersByEmail, $threadsByUserId, $threadsByEmail, $threadsByPhone) {
+                $emailKey = strtolower(trim((string) $contact->email));
+                $phoneKey = trim((string) ($contact->phone ?? ''));
+                $matchedUser = $emailKey !== '' ? $usersByEmail->get($emailKey) : null;
+                $matchedThread = $matchedUser && $threadsByUserId->has($matchedUser->id)
+                    ? $threadsByUserId->get($matchedUser->id)
+                    : ($emailKey !== '' && $threadsByEmail->has($emailKey)
+                        ? $threadsByEmail->get($emailKey)
+                        : ($phoneKey !== '' ? $threadsByPhone->get($phoneKey) : null));
+
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'phone' => $contact->phone,
+                    'subject' => $contact->subject,
+                    'message' => $contact->message,
+                    'created_at' => $contact->created_at,
+                    'matched_user' => $matchedUser ? [
+                        'id' => $matchedUser->id,
+                        'name' => $matchedUser->name,
+                        'username' => $matchedUser->username,
+                        'email' => $matchedUser->email,
+                        'phone' => $matchedUser->phone,
+                        'role' => $matchedUser->role,
+                        'created_at' => $matchedUser->created_at,
+                    ] : null,
+                    'matched_thread' => $matchedThread ? [
+                        'id' => $matchedThread->id,
+                        'last_message_at' => $matchedThread->last_message_at,
+                        'assigned_admin' => $matchedThread->assignedAdmin?->name,
+                        'latest_message' => $matchedThread->latestMessage?->body,
+                    ] : null,
+                    'reply_subject' => $contact->subject
+                        ? 'Re: ' . $contact->subject
+                        : 'Reply from Pavona Studio',
+                    'chat_available' => (bool) $matchedThread || (bool) $matchedUser,
+                ];
+            })->values(),
         ]);
+    }
+
+    public function contactsReply(Request $request, Contact $contact)
+    {
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string|max:5000',
+        ]);
+
+        try {
+            Mail::to($contact->email)->send(
+                new AdminContactReplyMail(
+                    $contact,
+                    $request->user(),
+                    $validated['subject'],
+                    $validated['message'],
+                )
+            );
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'Reply could not be sent right now. Please check your mail setup and try again.');
+        }
+
+        return back()->with('success', 'Reply sent successfully!');
+    }
+
+    public function contactsChat(Contact $contact, SupportChatService $chatService)
+    {
+        $matchedUser = User::query()->where('email', $contact->email)->first();
+
+        if ($matchedUser) {
+            $thread = $chatService->getOrCreateThreadForUser($matchedUser);
+
+            return redirect()->route('admin.messages', ['thread' => $thread->id]);
+        }
+
+        $thread = ChatThread::query()
+            ->where(function ($query) use ($contact) {
+                if (filled($contact->email)) {
+                    $query->where('guest_email', $contact->email);
+                }
+
+                if (filled($contact->phone)) {
+                    $query->orWhere('guest_phone', $contact->phone);
+                }
+            })
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($thread) {
+            return redirect()->route('admin.messages', ['thread' => $thread->id]);
+        }
+
+        return back()->with('error', 'No live chat thread is available for this contact yet.');
     }
 
     public function contactsDestroy(Contact $contact)
@@ -258,18 +464,19 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
-            'video' => 'nullable|mimes:mp4,mov,avi,wmv|max:5120000',
+            'image' => 'nullable|file|max:512000',
+            'video' => 'nullable|file|max:5120000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+        $this->ensureVideoUpload($request, 'video');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('posts', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'posts');
         }
 
         if ($request->hasFile('video')) {
-            $path = $request->file('video')->store('videos', 'public');
-            $validated['video'] = '/storage/' . $path;
+            $validated['video'] = $this->storeMediaFile($request, 'video', 'posts');
         }
 
         Post::create($validated);
@@ -282,18 +489,19 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
-            'video' => 'nullable|mimes:mp4,mov,avi,wmv|max:5120000',
+            'image' => 'nullable|file|max:512000',
+            'video' => 'nullable|file|max:5120000',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'image');
+        $this->ensureVideoUpload($request, 'video');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('posts', 'public');
-            $validated['image'] = '/storage/' . $path;
+            $validated['image'] = $this->storeMediaFile($request, 'image', 'posts');
         }
 
         if ($request->hasFile('video')) {
-            $path = $request->file('video')->store('videos', 'public');
-            $validated['video'] = '/storage/' . $path;
+            $validated['video'] = $this->storeMediaFile($request, 'video', 'posts');
         }
 
         $post->update($validated);
@@ -434,5 +642,46 @@ class AdminController extends Controller
     {
         $team->delete();
         return back()->with('success', 'Team member deleted!');
+    }
+
+    private function ensureImageOrVideoUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (!str_starts_with($mime, 'image/') && !str_starts_with($mime, 'video/')) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload an image or video file.',
+            ]);
+        }
+    }
+
+    private function ensureVideoUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (!str_starts_with($mime, 'video/')) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload a valid video file.',
+            ]);
+        }
+    }
+
+    private function storeMediaFile(Request $request, string $field, string $directory): string
+    {
+        $file = $request->file($field);
+        $mime = (string) $file->getMimeType();
+        $subDirectory = str_starts_with($mime, 'video/')
+            ? $directory.'/videos'
+            : $directory.'/images';
+
+        return '/storage/'.$file->store($subDirectory, 'public');
     }
 }

@@ -30,4 +30,14 @@ class UserReward extends Model
     {
         return $this->belongsTo(Reward::class);
     }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function rewinds()
+    {
+        return $this->hasMany(RewardRewind::class);
+    }
 }

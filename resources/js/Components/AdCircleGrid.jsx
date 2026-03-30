@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { useLocale } from '@/Providers/LocaleProvider';
 
 export default function AdCircleGrid({ advertisements = [] }) {
+    const { t } = useLocale();
     const activeAds = Array.isArray(advertisements) ? advertisements.filter(ad => ad.active) : [];
     const scrollRef = useRef(null);
 
@@ -39,7 +41,7 @@ export default function AdCircleGrid({ advertisements = [] }) {
                     <div key={`${ad.id}-${index}`} className="flex-shrink-0 flex flex-col items-center group">
                         {ad.link ? (
                             <a href={ad.link} target="_blank" rel="noopener noreferrer" className="block">
-                                <div className="w-40 h-40 rounded-full overflow-hidden shadow-2xl ring-4 ring-purple-500/30 group-hover:ring-purple-500 transition-all duration-300 group-hover:scale-110">
+                                <div className="w-40 h-40 rounded-full overflow-hidden shadow-elevated ring-4 ring-[rgba(251,188,5,0.35)] group-hover:ring-[rgba(255,109,0,0.55)] transition-all duration-300 group-hover:scale-110">
                                     {ad.type === 'video' ? (
                                         <video
                                             src={ad.media}
@@ -52,20 +54,20 @@ export default function AdCircleGrid({ advertisements = [] }) {
                                     ) : (
                                         <img
                                             src={ad.media}
-                                            alt={ad.title || 'Advertisement'}
+                                            alt={ad.title || t('ads.item')}
                                             className="w-full h-full object-cover"
                                         />
                                     )}
                                 </div>
                                 {ad.title && (
-                                    <p className="mt-4 text-center text-white text-xl font-bold drop-shadow-lg group-hover:text-yellow-300 transition-colors w-40">
+                                    <p className="mt-4 text-center text-[color:var(--md-text)] text-base font-semibold group-hover:text-[color:var(--md-primary)] transition-colors w-40">
                                         {ad.title}
                                     </p>
                                 )}
                             </a>
                         ) : (
                             <>
-                                <div className="w-40 h-40 rounded-full overflow-hidden shadow-2xl ring-4 ring-purple-500/30 group-hover:ring-purple-500 transition-all duration-300 group-hover:scale-110">
+                                <div className="w-40 h-40 rounded-full overflow-hidden shadow-elevated ring-4 ring-[rgba(251,188,5,0.35)] group-hover:ring-[rgba(255,109,0,0.55)] transition-all duration-300 group-hover:scale-110">
                                     {ad.type === 'video' ? (
                                         <video
                                             src={ad.media}
@@ -78,13 +80,13 @@ export default function AdCircleGrid({ advertisements = [] }) {
                                     ) : (
                                         <img
                                             src={ad.media}
-                                            alt={ad.title || 'Advertisement'}
+                                            alt={ad.title || t('ads.item')}
                                             className="w-full h-full object-cover"
                                         />
                                     )}
                                 </div>
                                 {ad.title && (
-                                    <p className="mt-4 text-center text-white text-xl font-bold drop-shadow-lg group-hover:text-yellow-300 transition-colors w-40">
+                                    <p className="mt-4 text-center text-[color:var(--md-text)] text-base font-semibold group-hover:text-[color:var(--md-primary)] transition-colors w-40">
                                         {ad.title}
                                     </p>
                                 )}

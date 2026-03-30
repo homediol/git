@@ -9,6 +9,7 @@ use App\Models\Post;
 use App\Models\Contact;
 use App\Models\SiteSettings;
 use App\Models\Advertisement;
+use App\Services\RewardService;
 use Database\Seeders\ServiceCatalogSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -27,6 +28,7 @@ class HomeController extends Controller
             'graphics-printing',
             'make-up',
             'software-development',
+            'sound-system',
         ];
     }
 
@@ -37,6 +39,7 @@ class HomeController extends Controller
             'Graphics & Printing Design',
             'Make Up',
             'Software Development',
+            'Sound System',
         ];
     }
 
@@ -110,11 +113,28 @@ class HomeController extends Controller
             $featuredServices = $this->getFeaturedServices();
         }
 
+        $promoRewards = app(RewardService::class)->ensureDefaultRewards()->map(function ($reward) {
+            return [
+                'id' => $reward->id,
+                'name' => $reward->name,
+                'name_rw' => $reward->name_rw,
+                'name_en' => $reward->name_en,
+                'name_fr' => $reward->name_fr,
+                'description' => $reward->description,
+                'description_rw' => $reward->description_rw,
+                'description_en' => $reward->description_en,
+                'description_fr' => $reward->description_fr,
+                'image' => $reward->image,
+                'slug' => $reward->slug,
+            ];
+        })->values();
+
         return Inertia::render('Home', [
             'services' => $featuredServices,
             'portfolios' => Portfolio::take(6)->get(),
             'teams' => Team::orderBy('order')->get(),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
+            'promoRewards' => $promoRewards,
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),
                 'main_bg' => SiteSettings::get('main_bg'),
@@ -290,6 +310,7 @@ class HomeController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:255',
             'subject' => 'required|string|max:255',
             'message' => 'required|string',
         ]);

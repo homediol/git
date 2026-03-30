@@ -30,4 +30,14 @@ class Reward extends Model
     {
         return $this->hasMany(UserReward::class);
     }
+
+    public function promotionCampaigns()
+    {
+        return $this->hasMany(PromotionCampaign::class, 'reference_reward_id');
+    }
+
+    public function rewinds()
+    {
+        return $this->hasMany(RewardRewind::class);
+    }
 }

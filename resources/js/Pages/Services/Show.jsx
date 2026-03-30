@@ -1,70 +1,84 @@
 import { Head, Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import AdCircleGrid from '@/Components/AdCircleGrid';
+import BookingTrigger from '@/Components/BookingTrigger';
+import MediaPreview from '@/Components/MediaPreview';
+import { useLocale } from '@/Providers/LocaleProvider';
+import { getLocalizedValue } from '@/lib/i18n';
 
 export default function ServiceShow({ auth, service, subServices = [], advertisements = [], settings }) {
+    const { locale, t } = useLocale();
+
     return (
         <PublicLayout auth={auth} settings={settings}>
-            <Head title={`${service.title} - Services`}>
-                <meta name="description" content={service.description || 'Explore our professional services and sub-services'} />
+            <Head title={`${getLocalizedValue(locale, service, 'title')} - ${t('services.title')}`}>
+                <meta name="description" content={getLocalizedValue(locale, service, 'description') || t('services.show.meta_description')} />
             </Head>
 
             <div className="py-16 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="mb-8 flex items-center justify-between">
+                    <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div>
-                            <h1 className="font-display text-4xl sm:text-5xl font-semibold bg-gradient-to-r from-sky-200 to-indigo-200 bg-clip-text text-transparent">
-                                {service.title}
+                            <h1 className="font-display text-3xl sm:text-4xl font-semibold text-[color:var(--md-text)]">
+                                {getLocalizedValue(locale, service, 'title')}
                             </h1>
                             {service.description && (
-                                <p className="mt-3 text-white/70 text-base sm:text-lg max-w-2xl" dangerouslySetInnerHTML={{ __html: service.description }} />
+                                <p className="mt-3 text-slate-600 text-base sm:text-lg max-w-2xl" dangerouslySetInnerHTML={{ __html: getLocalizedValue(locale, service, 'description') }} />
                             )}
                         </div>
-                        <Link
-                            href={route('services')}
-                            className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white/80 hover:text-white"
-                        >
-                            Back to Services
-                        </Link>
+                        <div className="flex flex-wrap gap-3">
+                            <BookingTrigger auth={auth} serviceId={service.id} className="btn-fire">
+                                {t('booking.cta', 'Book now')}
+                            </BookingTrigger>
+                            <Link
+                                href={route('services')}
+                                className="btn-outline"
+                            >
+                                {t('services.show.back')}
+                            </Link>
+                        </div>
                     </div>
 
                     {service.image && (
-                        <div className="glass-dark rounded-2xl p-4 mb-10">
-                            <img
+                        <div className="surface p-4 mb-10">
+                            <MediaPreview
                                 src={service.image}
-                                alt={service.title}
+                                alt={getLocalizedValue(locale, service, 'title')}
                                 className="h-64 w-full rounded-xl object-cover"
+                                videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                             />
                         </div>
                     )}
 
-                    <h2 className="font-display text-3xl sm:text-4xl font-semibold text-white/90 mb-6">
-                        Sub-services
+                    <h2 className="font-display text-2xl sm:text-3xl font-semibold text-[color:var(--md-text)] mb-6">
+                        {t('services.show.subservices')}
                     </h2>
 
                     {subServices.length === 0 ? (
-                        <p className="text-white/70">No sub-services available yet.</p>
+                        <p className="text-slate-500">{t('services.show.empty')}</p>
                     ) : (
                         <div className="grid gap-6 md:grid-cols-2">
                             {subServices.map((subService) => (
                                 <Link
                                     key={subService.id}
                                     href={route('services.subservices.show', [service.id, subService.id])}
-                                    className="glass-dark rounded-2xl p-6 transition-all hover:shadow-2xl hover:scale-[1.02]"
+                                    className="surface p-6 transition-all duration-300 hover:shadow-elevated hover:-translate-y-1"
                                 >
                                     {subService.image && (
-                                        <img
+                                        <MediaPreview
                                             src={subService.image}
-                                            alt={subService.title}
+                                            alt={getLocalizedValue(locale, subService, 'title') || subService.title}
                                             className="mb-4 h-48 w-full rounded-xl object-cover"
+                                            videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                                         />
                                     )}
-                                    <h3 className="text-2xl font-semibold text-cyan-300">{subService.title}</h3>
+                                    <h3 className="text-lg font-semibold text-[color:var(--md-text)]">{getLocalizedValue(locale, subService, 'title') || subService.title}</h3>
                                     {subService.description && (
-                                        <p className="mt-2 text-white/70 text-sm sm:text-base">{subService.description}</p>
+                                        <p className="mt-2 text-slate-600 text-sm sm:text-base">{getLocalizedValue(locale, subService, 'description') || subService.description}</p>
                                     )}
-                                    <span className="mt-4 inline-flex text-sm font-semibold text-sky-200">
-                                        View Details →
+                                    <span className="mt-4 inline-flex text-sm font-semibold text-[color:var(--md-secondary)]">
+                                        {t('services.show.view_details')}
+                                        {' ->'}
                                     </span>
                                 </Link>
                             ))}
@@ -73,7 +87,9 @@ export default function ServiceShow({ auth, service, subServices = [], advertise
 
                     {advertisements.length > 0 && (
                         <div className="mt-16">
-                            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-center mb-10 text-white/90">Our Partners</h2>
+                            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-center mb-6 text-[color:var(--md-text)]">
+                                {t('services.partners')}
+                            </h2>
                             <AdCircleGrid advertisements={advertisements} />
                         </div>
                     )}

@@ -4,10 +4,12 @@ import { useState } from 'react';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
+import InputError from '@/Components/InputError';
+import MediaPreview from '@/Components/MediaPreview';
 
 export default function PostsIndex({ posts }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, put, delete: destroy, reset } = useForm({
+    const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
         title: '',
         content: '',
         category: '',
@@ -29,7 +31,7 @@ export default function PostsIndex({ posts }) {
         }
         
         if (editing) {
-            post(route('admin.posts.update', editing), {
+            put(route('admin.posts.update', editing), {
                 data: formData,
                 forceFormData: true,
                 onSuccess: () => { reset(); setEditing(null); }
@@ -55,7 +57,17 @@ export default function PostsIndex({ posts }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-gray-800">Manage Blog Posts</h2>}>
+        <AuthenticatedLayout
+            header={
+                <div>
+                    <p className="text-xs font-black uppercase tracking-[0.34em] text-orange-600">Admin Posts</p>
+                    <h2 className="mt-2 text-3xl font-black text-slate-950">Manage blog posts</h2>
+                    <p className="mt-2 text-sm font-medium text-slate-600">
+                        Create, edit, and organize Pavona Studio stories without leaving this page.
+                    </p>
+                </div>
+            }
+        >
             <Head title="Manage Posts" />
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -65,24 +77,44 @@ export default function PostsIndex({ posts }) {
                             <div className="mb-4">
                                 <InputLabel value="Title" />
                                 <TextInput value={data.title} onChange={(e) => setData('title', e.target.value)} className="mt-1 block w-full" required />
+                                <InputError message={errors.title} className="mt-2" />
                             </div>
                             <div className="mb-4">
                                 <InputLabel value="Category" />
                                 <TextInput value={data.category} onChange={(e) => setData('category', e.target.value)} className="mt-1 block w-full" required />
+                                <InputError message={errors.category} className="mt-2" />
                             </div>
                             <div className="mb-4">
                                 <InputLabel value="Content" />
                                 <textarea value={data.content} onChange={(e) => setData('content', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="6" required />
+                                <InputError message={errors.content} className="mt-2" />
                             </div>
                             <div className="mb-4">
-                                <InputLabel value="Image" />
-                                <input type="file" accept="image/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
-                                {data.image && typeof data.image === 'string' && <img src={data.image} alt="Preview" className="mt-2 h-20 rounded" />}
+                                <InputLabel value="Featured Media" />
+                                <input type="file" accept="image/*,video/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
+                                <InputError message={errors.image} className="mt-2" />
+                                {data.image && typeof data.image === 'string' && (
+                                    <MediaPreview
+                                        src={data.image}
+                                        alt="Featured media preview"
+                                        className="mt-2 h-24 w-full rounded object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                    />
+                                )}
                             </div>
                             <div className="mb-4">
                                 <InputLabel value="Video (Optional)" />
                                 <input type="file" accept="video/*" onChange={(e) => setData('video', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700" />
-                                {data.video && typeof data.video === 'string' && <p className="mt-2 text-sm text-gray-600">Video: {data.video.split('/').pop()}</p>}
+                                <p className="mt-2 text-xs font-medium text-slate-500">Any browser-supported video format is allowed.</p>
+                                <InputError message={errors.video} className="mt-2" />
+                                {data.video && typeof data.video === 'string' && (
+                                    <MediaPreview
+                                        src={data.video}
+                                        alt="Video preview"
+                                        className="mt-2 h-24 w-full rounded object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                    />
+                                )}
                             </div>
                             <div className="flex gap-2">
                                 <PrimaryButton>{editing ? 'Update' : 'Create'}</PrimaryButton>
@@ -94,6 +126,14 @@ export default function PostsIndex({ posts }) {
                     <div className="space-y-4">
                         {posts.map((postItem) => (
                             <div key={postItem.id} className="glass rounded-2xl p-6">
+                                {(postItem.video || postItem.image) && (
+                                    <MediaPreview
+                                        src={postItem.video || postItem.image}
+                                        alt={postItem.title}
+                                        className="mb-4 h-44 w-full rounded-xl object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                    />
+                                )}
                                 <span className="text-sm text-purple-600 font-semibold">{postItem.category}</span>
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{postItem.title}</h3>
                                 <p className="text-gray-600 mb-4 line-clamp-2">{postItem.content}</p>

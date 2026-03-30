@@ -4,6 +4,7 @@ import { useState } from 'react';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
+import MediaPreview from '@/Components/MediaPreview';
 
 export default function PortfoliosIndex({ portfolios }) {
     const [editing, setEditing] = useState(null);
@@ -71,9 +72,16 @@ export default function PortfoliosIndex({ portfolios }) {
                                 <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" required />
                             </div>
                             <div className="mb-4">
-                                <InputLabel value="Image" />
-                                <input type="file" accept="image/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
-                                {data.image && typeof data.image === 'string' && <img src={data.image} alt="Preview" className="mt-2 h-20 rounded" />}
+                                <InputLabel value="Media" />
+                                <input type="file" accept="image/*,video/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
+                                {data.image && typeof data.image === 'string' && (
+                                    <MediaPreview
+                                        src={data.image}
+                                        alt="Preview"
+                                        className="mt-2 h-20 w-full rounded object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                    />
+                                )}
                             </div>
                             <div className="flex gap-2">
                                 <PrimaryButton>{editing ? 'Update' : 'Create'}</PrimaryButton>
@@ -85,6 +93,14 @@ export default function PortfoliosIndex({ portfolios }) {
                     <div className="grid md:grid-cols-2 gap-6">
                         {portfolios.map((portfolio) => (
                             <div key={portfolio.id} className="glass rounded-2xl p-6">
+                                {portfolio.image && (
+                                    <MediaPreview
+                                        src={portfolio.image}
+                                        alt={portfolio.title}
+                                        className="mb-4 h-44 w-full rounded-xl object-cover"
+                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                    />
+                                )}
                                 <span className="text-sm text-purple-600 font-semibold">{portfolio.category}</span>
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{portfolio.title}</h3>
                                 <p className="text-gray-600 mb-4">{portfolio.description}</p>

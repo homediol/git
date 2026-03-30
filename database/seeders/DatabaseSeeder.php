@@ -22,7 +22,9 @@ class DatabaseSeeder extends Seeder
         // Create admin user
         User::create([
             'name' => 'Admin User',
+            'username' => 'admin',
             'email' => 'admin@pavonastudios.com',
+            'phone' => '+250788000000',
             'password' => bcrypt('password'),
             'role' => 'admin',
         ]);
@@ -30,7 +32,9 @@ class DatabaseSeeder extends Seeder
         // Create regular user
         User::create([
             'name' => 'John Doe',
+            'username' => 'johndoe',
             'email' => 'user@pavonastudios.com',
+            'phone' => '+250788111111',
             'password' => bcrypt('password'),
         ]);
 
