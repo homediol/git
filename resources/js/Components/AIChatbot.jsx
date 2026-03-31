@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { usePage } from '@inertiajs/react';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 import { useLocale } from '@/Providers/LocaleProvider';
 
 const menuMode = 'menu';
@@ -414,7 +415,7 @@ export default function AIChatbot() {
                 {aiMessages.map((message, index) => (
                     <div key={`${message.sender}-${index}`} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
-                            className={`max-w-[82%] rounded-[24px] px-4 py-3 text-sm leading-6 ${
+                            className={`max-w-[88%] sm:max-w-[82%] rounded-[24px] px-4 py-3 text-sm leading-6 ${
                                 message.sender === 'user'
                                     ? 'rounded-br-none text-white shadow-[0_18px_40px_rgba(234,67,53,0.22)]'
                                     : 'rounded-bl-none border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] text-[color:var(--md-text)] shadow-sm'
@@ -484,6 +485,14 @@ export default function AIChatbot() {
                     <div className="rounded-full bg-[rgba(255,109,0,0.12)] px-3 py-1 text-xs font-bold text-[color:var(--md-primary)]">
                         {companyUnreadCount} {t('chat.company.header.unread', 'unread')}
                     </div>
+                </div>
+                <div className="mt-3">
+                    <SupportWhatsAppButton
+                        message="Hello Pavona admin, I need help from live chat."
+                        label={t('support.whatsapp.short', 'WhatsApp admin')}
+                        className="px-3 py-2 text-xs"
+                        fullWidth
+                    />
                 </div>
             </div>
 
@@ -561,7 +570,7 @@ export default function AIChatbot() {
                     <div className="space-y-3">
                         {companyMessages.map((message) => (
                             <div key={message.id} className={`flex ${message.is_mine ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex max-w-[84%] flex-col ${message.is_mine ? 'items-end' : 'items-start'}`}>
+                                <div className={`flex max-w-[88%] flex-col sm:max-w-[84%] ${message.is_mine ? 'items-end' : 'items-start'}`}>
                                     <div
                                         className={`rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm ${
                                             message.is_mine
@@ -600,7 +609,7 @@ export default function AIChatbot() {
             )}
 
             <form onSubmit={sendCompanyMessage} className="border-t border-[color:var(--md-outline)] bg-[color:var(--md-surface)] p-4">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                     <textarea
                         value={companyDraft}
                         onChange={(event) => setCompanyDraft(event.target.value)}
@@ -611,7 +620,7 @@ export default function AIChatbot() {
                     <button
                         type="submit"
                         disabled={companySending || !companyDraft.trim()}
-                        className="btn-fire self-end px-4 py-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                        className="btn-fire w-full px-4 py-3 text-xs disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-end"
                     >
                         {companySending ? t('chat.company.sending', 'Sending...') : t('chat.company.send', 'Send')}
                     </button>
@@ -632,7 +641,7 @@ export default function AIChatbot() {
 
                     openWidget(menuMode);
                 }}
-                className="fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-[0_18px_38px_rgba(234,67,53,0.28)] transition-all duration-300 hover:scale-110 hover:shadow-[0_24px_44px_rgba(234,67,53,0.34)]"
+                className="fixed bottom-4 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_18px_38px_rgba(234,67,53,0.28)] transition-all duration-300 hover:scale-110 hover:shadow-[0_24px_44px_rgba(234,67,53,0.34)] sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
                 style={{ background: 'linear-gradient(135deg, #ff7a18 0%, #ff5a1f 42%, #ea4335 100%)' }}
                 aria-label={isOpen ? t('chat.fab.close', 'Close Pavona chat hub') : t('chat.fab.open', 'Open Pavona chat hub')}
             >
@@ -640,14 +649,14 @@ export default function AIChatbot() {
             </button>
 
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6">
                     <button
                         type="button"
                         onClick={closeWidget}
                         className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"
                         aria-label={t('chat.close', 'Close chat')}
                     />
-                    <div className="relative z-10 flex h-[640px] w-full max-w-[420px] min-h-0 max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[30px] border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] shadow-[0_30px_90px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+                    <div className="relative z-10 flex h-[min(78vh,640px)] w-full max-w-[420px] min-h-0 max-h-[calc(100vh-1.5rem)] flex-col overflow-hidden rounded-[26px] border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] shadow-[0_30px_90px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:h-[640px] sm:max-h-[calc(100vh-3rem)] sm:rounded-[30px]">
                         <div
                             className="relative overflow-hidden border-b border-white/10 px-4 py-4 text-white"
                             style={{ background: 'linear-gradient(135deg, #ff7a18 0%, #ff5a1f 42%, #ea4335 100%)' }}

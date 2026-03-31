@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import MediaPreview from '@/Components/MediaPreview';
 import BookingTrigger from '@/Components/BookingTrigger';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
 
@@ -30,6 +31,12 @@ export default function RewardsIndex({ auth, rewards = [], settings }) {
                     <p className="text-center text-slate-600 text-base sm:text-lg font-semibold mb-10 max-w-2xl mx-auto">
                         {t('rewards.subtitle')}
                     </p>
+                    <div className="mb-10 flex justify-center">
+                        <SupportWhatsAppButton
+                            message="Hello Pavona admin, I need help with rewards or reward rewinds."
+                            showPhone
+                        />
+                    </div>
 
                     {rewards.length === 0 ? (
                         <p className="text-center text-slate-500">{t('rewards.none')}</p>

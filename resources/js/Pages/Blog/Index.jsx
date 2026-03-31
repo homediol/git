@@ -25,7 +25,7 @@ export default function BlogIndex({ auth, posts, advertisements = [], settings }
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                         {posts.data.map((post) => (
                             <Link key={post.id} href={route('blog.show', post.id)} className="surface overflow-hidden transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
                                 {(post.video || post.image) && (

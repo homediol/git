@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import AdCircleGrid from '@/Components/AdCircleGrid';
 import BookingTrigger from '@/Components/BookingTrigger';
+import BookingContactActions from '@/Components/BookingContactActions';
 import MediaPreview from '@/Components/MediaPreview';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
@@ -26,13 +27,14 @@ export default function ServiceShow({ auth, service, subServices = [], advertise
                                 <p className="mt-3 text-slate-600 text-base sm:text-lg max-w-2xl" dangerouslySetInnerHTML={{ __html: getLocalizedValue(locale, service, 'description') }} />
                             )}
                         </div>
-                        <div className="flex flex-wrap gap-3">
-                            <BookingTrigger auth={auth} serviceId={service.id} className="btn-fire">
+                        <div className="grid gap-3 sm:flex sm:flex-wrap">
+                            <BookingTrigger auth={auth} serviceId={service.id} className="btn-fire w-full sm:w-auto">
                                 {t('booking.cta', 'Book now')}
                             </BookingTrigger>
+                            <BookingContactActions />
                             <Link
                                 href={route('services')}
-                                className="btn-outline"
+                                className="btn-outline w-full sm:w-auto"
                             >
                                 {t('services.show.back')}
                             </Link>
@@ -44,7 +46,7 @@ export default function ServiceShow({ auth, service, subServices = [], advertise
                             <MediaPreview
                                 src={service.image}
                                 alt={getLocalizedValue(locale, service, 'title')}
-                                className="h-64 w-full rounded-xl object-cover"
+                                className="h-56 w-full rounded-xl object-cover sm:h-64"
                                 videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                             />
                         </div>
@@ -57,7 +59,7 @@ export default function ServiceShow({ auth, service, subServices = [], advertise
                     {subServices.length === 0 ? (
                         <p className="text-slate-500">{t('services.show.empty')}</p>
                     ) : (
-                        <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid gap-6 sm:grid-cols-2">
                             {subServices.map((subService) => (
                                 <Link
                                     key={subService.id}

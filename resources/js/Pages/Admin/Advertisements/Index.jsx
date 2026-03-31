@@ -1,9 +1,10 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState } from 'react';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 export default function Index({ auth, advertisements }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, setError, clearErrors } = useForm({
         title: '',
         description: '',
         link: '',
@@ -19,12 +20,24 @@ export default function Index({ auth, advertisements }) {
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setData('media', file);
-            const url = URL.createObjectURL(file);
-            setPreview(url);
-            setPreviewType(file.type.startsWith('video') ? 'video' : 'image');
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            setError('media', error);
+            e.target.value = '';
+            return;
         }
+
+        clearErrors('media');
+
+        if (!file) {
+            return;
+        }
+
+        setData('media', file);
+        const url = URL.createObjectURL(file);
+        setPreview(url);
+        setPreviewType(file.type.startsWith('video') ? 'video' : 'image');
     };
 
     const handleSubmit = (e) => {
@@ -147,7 +160,7 @@ export default function Index({ auth, advertisements }) {
                                         className="w-full"
                                         required={!editingId}
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">Images: jpg, png, webp | Videos: mp4, webm (max 50MB)</p>
+                                    <p className="text-xs text-gray-500 mt-1">Images: jpg, png, webp (up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB) | Videos: mp4, webm (max 50MB)</p>
                                     {errors.media && <p className="text-red-500 text-sm">{errors.media}</p>}
                                 </div>
 

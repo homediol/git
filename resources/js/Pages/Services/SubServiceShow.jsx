@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import AdCircleGrid from '@/Components/AdCircleGrid';
 import BookingTrigger from '@/Components/BookingTrigger';
+import BookingContactActions from '@/Components/BookingContactActions';
 import MediaPreview from '@/Components/MediaPreview';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
@@ -20,7 +21,7 @@ export default function SubServiceShow({ auth, service, subService, advertisemen
 
             <div className="py-16 px-4">
                 <div className="max-w-6xl mx-auto">
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
+                    <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-semibold">
                                 {serviceTitle}
@@ -34,16 +35,16 @@ export default function SubServiceShow({ auth, service, subService, advertisemen
                                 </p>
                             )}
                         </div>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="grid gap-3 sm:flex sm:flex-wrap">
                             <Link
                                 href={route('services.show', service.id)}
-                                className="btn-outline"
+                                className="btn-outline w-full sm:w-auto"
                             >
                                 {t('services.sub.back_to')} {serviceTitle}
                             </Link>
                             <Link
                                 href={route('services')}
-                                className="btn-outline"
+                                className="btn-outline w-full sm:w-auto"
                             >
                                 {t('services.sub.all')}
                             </Link>
@@ -55,7 +56,7 @@ export default function SubServiceShow({ auth, service, subService, advertisemen
                             <MediaPreview
                                 src={subService.image}
                                 alt={subTitle}
-                                className="h-72 w-full rounded-xl object-cover"
+                                className="h-64 w-full rounded-xl object-cover sm:h-72"
                                 videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                             />
                         </div>
@@ -66,13 +67,14 @@ export default function SubServiceShow({ auth, service, subService, advertisemen
                         <p className="mt-3 text-slate-600 text-base sm:text-lg">
                             {t('services.sub.description')} {subTitle.toLowerCase()}.
                         </p>
-                        <div className="mt-6 flex flex-wrap gap-4">
-                            <BookingTrigger auth={auth} serviceId={service.id} className="btn-fire">
+                        <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+                            <BookingTrigger auth={auth} serviceId={service.id} className="btn-fire w-full sm:w-auto">
                                 {t('booking.cta', 'Book now')}
                             </BookingTrigger>
+                            <BookingContactActions />
                             <Link
                                 href={route('services.show', service.id)}
-                                className="btn-outline"
+                                className="btn-outline w-full sm:w-auto"
                             >
                                 {t('services.sub.cta_secondary')} {serviceTitle}
                             </Link>

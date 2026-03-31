@@ -25,7 +25,7 @@ class PromotionCampaignController extends Controller
             'cta_text_en' => 'nullable|string|max:255',
             'cta_text_fr' => 'nullable|string|max:255',
             'cta_url' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
             'audience_type' => 'required|in:all_users,new_users,specific_users,booked_service',
             'user_age_segment' => 'nullable|in:all,new,existing',
             'new_user_window_days' => 'nullable|integer|min:1|max:365',
@@ -80,6 +80,7 @@ class PromotionCampaignController extends Controller
         }
 
         if ($request->hasFile('image')) {
+            $this->ensureImageUpload($request, 'image');
             $path = $request->file('image')->store('promotion-campaigns', 'public');
             $validated['image'] = '/storage/' . $path;
         }
@@ -132,6 +133,21 @@ class PromotionCampaignController extends Controller
         ]);
 
         return back()->with('success', 'Promotion campaign sent successfully.');
+    }
+
+    private function ensureImageUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (!str_starts_with($mime, 'image/')) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload a valid image file.',
+            ]);
+        }
     }
 
     private function parseSpecificUsers(string $value): array

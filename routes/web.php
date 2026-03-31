@@ -46,6 +46,7 @@ Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'storeContact'])->name('contact.store');
 Route::get('/blog', [HomeController::class, 'blog'])->name('blog');
 Route::get('/blog/{post}', [HomeController::class, 'blogShow'])->name('blog.show');
+Route::view('/responsive-preview', 'pavona-responsive')->name('responsive.preview');
 Route::get('/firebase-messaging-sw.js', [PushNotificationController::class, 'serviceWorker'])->name('push.service-worker');
 
 // Google OAuth
@@ -214,6 +215,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/messages/threads', [AdminMessageController::class, 'threads'])->name('messages.threads');
     Route::get('/messages/threads/{thread}', [AdminMessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/threads/{thread}', [AdminMessageController::class, 'store'])->name('messages.store');
+    Route::delete('/messages/threads/{thread}', [AdminMessageController::class, 'destroyThread'])->name('messages.thread.destroy');
     Route::put('/messages/threads/{thread}/messages/{message}', [AdminMessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/threads/{thread}/messages/{message}', [AdminMessageController::class, 'destroy'])->name('messages.destroy');
 

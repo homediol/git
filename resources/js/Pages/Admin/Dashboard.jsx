@@ -4,6 +4,106 @@ import { useLocale } from '@/Providers/LocaleProvider';
 
 export default function AdminDashboard({ stats, recentNotifications = [] }) {
     const { t } = useLocale();
+    const overviewCards = [
+        {
+            label: 'Services',
+            value: stats.services,
+            href: route('admin.services'),
+            helper: 'Open the service catalog',
+        },
+        {
+            label: 'Portfolios',
+            value: stats.portfolios,
+            href: route('admin.portfolios'),
+            helper: 'Manage portfolio entries',
+        },
+        {
+            label: 'Contacts',
+            value: stats.contacts,
+            href: route('admin.contacts'),
+            helper: 'Review incoming inquiries',
+        },
+        {
+            label: 'Posts',
+            value: stats.posts,
+            href: route('admin.posts'),
+            helper: 'Publish blog stories',
+        },
+        {
+            label: 'Team',
+            value: stats.teams,
+            href: route('admin.teams'),
+            helper: 'Update the About section',
+        },
+        {
+            label: 'Promotions',
+            value: stats.promotions,
+            href: route('admin.promotions'),
+            helper: 'Launch campaigns and banners',
+        },
+        {
+            label: 'Rewards',
+            value: stats.rewards,
+            href: route('admin.rewards'),
+            helper: 'Manage the reward catalog',
+        },
+        {
+            label: 'User Rewards',
+            value: stats.userRewards,
+            href: route('admin.rewards'),
+            helper: 'View claimed user rewards',
+        },
+        {
+            label: 'Bookings',
+            value: stats.bookings,
+            href: route('admin.bookings'),
+            helper: 'Open all booking requests',
+        },
+        {
+            label: 'Pending Bookings',
+            value: stats.pendingBookings,
+            href: route('admin.bookings'),
+            helper: 'Review waiting approvals first',
+            tone: 'alert',
+        },
+        {
+            label: 'Notifications',
+            value: stats.notifications,
+            href: route('admin.notifications'),
+            helper: 'Broadcast announcements',
+        },
+        {
+            label: 'Chat Threads',
+            value: stats.chatThreads,
+            href: route('admin.messages'),
+            helper: 'Reply to live conversations',
+        },
+        {
+            label: 'Unread Chats',
+            value: stats.unreadChatMessages,
+            href: route('admin.messages'),
+            helper: 'Open unread inbox items',
+            tone: 'alert',
+        },
+        {
+            label: 'Activity Logs',
+            value: stats.activities,
+            href: route('admin.activities'),
+            helper: 'Track recent admin actions',
+        },
+    ];
+    const quickActions = [
+        {
+            label: 'Site Settings',
+            description: 'Update backgrounds, footer social URLs, and contact email',
+            href: route('admin.settings'),
+        },
+        {
+            label: 'Advertisements',
+            description: 'Update header slider',
+            href: route('admin.advertisements'),
+        },
+    ];
 
     return (
         <AuthenticatedLayout
@@ -18,69 +118,39 @@ export default function AdminDashboard({ stats, recentNotifications = [] }) {
             <Head title="Admin Dashboard" />
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Services</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.services}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Portfolios</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.portfolios}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Contacts</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.contacts}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Posts</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.posts}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Team</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.teams}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Promotions</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.promotions}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Rewards</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.rewards}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">User Rewards</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.userRewards}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Bookings</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.bookings}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Pending Bookings</p>
-                    <p className="text-2xl font-semibold text-amber-600 mt-2">{stats.pendingBookings}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Notifications</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.notifications}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Chat Threads</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.chatThreads}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Unread Chats</p>
-                    <p className="text-2xl font-semibold text-orange-600 mt-2">{stats.unreadChatMessages}</p>
-                </div>
-                <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/60">
-                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Activity Logs</p>
-                    <p className="text-2xl font-semibold text-slate-900 mt-2">{stats.activities}</p>
-                </div>
+                {overviewCards.map((card) => (
+                    <Link
+                        key={card.label}
+                        href={card.href}
+                        className={`group rounded-3xl border p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-xl ${
+                            card.tone === 'alert'
+                                ? 'border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.9))] shadow-amber-100/70'
+                                : 'border-white/70 bg-white/80 shadow-slate-200/60'
+                        }`}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.25em] text-slate-500">{card.label}</p>
+                                <p className={`mt-2 text-2xl font-semibold ${card.tone === 'alert' ? 'text-amber-600' : 'text-slate-900'}`}>
+                                    {card.value}
+                                </p>
+                            </div>
+                            <span className="text-lg font-semibold text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-500">
+                                →
+                            </span>
+                        </div>
+                        <p className="mt-3 text-sm text-slate-500">
+                            {card.helper}
+                        </p>
+                    </Link>
+                ))}
             </div>
 
             <div className="mt-8 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-slate-200/60">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h3 className="text-lg font-semibold text-slate-900">Studio Management</h3>
-                        <p className="text-sm text-slate-600">Quick access to the most used admin tools.</p>
+                        <p className="text-sm text-slate-600">Focused shortcuts that do not repeat the overview cards above.</p>
                     </div>
                     <Link
                         href={route('admin.activities')}
@@ -90,55 +160,13 @@ export default function AdminDashboard({ stats, recentNotifications = [] }) {
                     </Link>
                 </div>
 
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    <Link href={route('admin.services')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Manage Services</h3>
-                        <p className="text-sm text-slate-600">Add, edit, or delete services</p>
-                    </Link>
-                    <Link href={route('admin.portfolios')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Manage Portfolio</h3>
-                        <p className="text-sm text-slate-600">Curate portfolio items</p>
-                    </Link>
-                    <Link href={route('admin.posts')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Manage Blog Posts</h3>
-                        <p className="text-sm text-slate-600">Publish studio stories</p>
-                    </Link>
-                    <Link href={route('admin.promotions')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Promotions</h3>
-                        <p className="text-sm text-slate-600">Schedule new campaigns</p>
-                    </Link>
-                    <Link href={route('admin.notifications')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Send Notifications</h3>
-                        <p className="text-sm text-slate-600">Broadcast announcements</p>
-                    </Link>
-                    <Link href={route('admin.rewards')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Rewards</h3>
-                        <p className="text-sm text-slate-600">Manage reward catalog</p>
-                    </Link>
-                    <Link href={route('admin.messages')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Customer Inbox</h3>
-                        <p className="text-sm text-slate-600">Reply to live user conversations</p>
-                    </Link>
-                    <Link href={route('admin.bookings')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Bookings</h3>
-                        <p className="text-sm text-slate-600">Approve or reject client requests</p>
-                    </Link>
-                    <Link href={route('admin.contacts')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Contact Messages</h3>
-                        <p className="text-sm text-slate-600">Review client inquiries</p>
-                    </Link>
-                    <Link href={route('admin.teams')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Our Team</h3>
-                        <p className="text-sm text-slate-600">Manage team profiles</p>
-                    </Link>
-                    <Link href={route('admin.settings')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Site Backgrounds</h3>
-                        <p className="text-sm text-slate-600">Update section visuals</p>
-                    </Link>
-                    <Link href={route('admin.advertisements')} className="rounded-2xl bg-white/70 p-5 hover:shadow-lg transition">
-                        <h3 className="text-base font-semibold text-slate-800 mb-1">Advertisements</h3>
-                        <p className="text-sm text-slate-600">Update header slider</p>
-                    </Link>
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {quickActions.map((action) => (
+                        <Link key={action.label} href={action.href} className="rounded-2xl bg-white/70 p-5 transition hover:shadow-lg">
+                            <h3 className="mb-1 text-base font-semibold text-slate-800">{action.label}</h3>
+                            <p className="text-sm text-slate-600">{action.description}</p>
+                        </Link>
+                    ))}
                 </div>
             </div>
 

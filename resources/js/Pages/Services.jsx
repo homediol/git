@@ -29,7 +29,7 @@ export default function Services({ auth, services = [], advertisements = [], set
                     {services.length === 0 ? (
                         <p className="text-center text-slate-500">{t('services.empty')}</p>
                     ) : (
-                        <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid gap-6 sm:grid-cols-2">
                             {services.map((service) => (
                                 <Link
                                     key={service.id}

@@ -60,15 +60,15 @@ export default function SupportChatPanel({
         ? 'rounded-full bg-orange-400/15 px-3 py-1.5 text-xs font-semibold text-orange-100'
         : 'rounded-full bg-[rgba(255,109,0,0.12)] px-3 py-1.5 text-xs font-semibold text-[color:var(--md-primary)]';
     const unreadCardClass = isMidnight
-        ? 'rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-right shadow-[0_14px_36px_rgba(2,6,23,0.38)] backdrop-blur'
-        : 'rounded-2xl border border-[rgba(66,133,244,0.18)] bg-white/92 px-4 py-3 text-right shadow-sm';
+        ? 'w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-right shadow-[0_14px_36px_rgba(2,6,23,0.38)] backdrop-blur sm:w-auto'
+        : 'w-full rounded-2xl border border-[rgba(66,133,244,0.18)] bg-white/92 px-4 py-3 text-right shadow-sm sm:w-auto';
     const unreadLabelClass = isMidnight
         ? 'text-[11px] uppercase tracking-[0.25em] text-orange-200'
         : 'text-[11px] uppercase tracking-[0.25em] text-[color:var(--md-primary)]';
     const unreadValueClass = isMidnight ? 'mt-1 text-2xl font-semibold text-white' : 'mt-1 text-2xl font-semibold text-slate-900';
     const scrollClass = isMidnight
-        ? 'support-chat-scroll h-[52vh] overflow-y-auto bg-[linear-gradient(180deg,rgba(255,109,0,0.08),rgba(17,24,39,0.06)_26%,rgba(66,133,244,0.08)_100%)] px-4 py-5 sm:px-6'
-        : 'support-chat-scroll h-[52vh] overflow-y-auto bg-[linear-gradient(180deg,rgba(255,109,0,0.06),rgba(255,255,255,0.35)_38%,rgba(66,133,244,0.06)_100%)] px-4 py-5 sm:px-6';
+        ? 'support-chat-scroll h-[48vh] overflow-y-auto bg-[linear-gradient(180deg,rgba(255,109,0,0.08),rgba(17,24,39,0.06)_26%,rgba(66,133,244,0.08)_100%)] px-4 py-5 sm:h-[52vh] sm:px-6'
+        : 'support-chat-scroll h-[48vh] overflow-y-auto bg-[linear-gradient(180deg,rgba(255,109,0,0.06),rgba(255,255,255,0.35)_38%,rgba(66,133,244,0.06)_100%)] px-4 py-5 sm:h-[52vh] sm:px-6';
     const emptyCardClass = isMidnight
         ? 'max-w-md rounded-[28px] border border-white/10 bg-slate-950/45 px-6 py-8 text-center shadow-sm backdrop-blur'
         : 'max-w-md rounded-[28px] border border-dashed border-[rgba(255,109,0,0.24)] bg-white/84 px-6 py-8 text-center shadow-sm';
@@ -213,7 +213,7 @@ export default function SupportChatPanel({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
                         {headerSlot}
                         <div className={unreadCardClass}>
                             <p className={unreadLabelClass}>Unread</p>
@@ -244,7 +244,7 @@ export default function SupportChatPanel({
                                 key={message.id}
                                 className={`flex ${message.is_mine ? 'justify-end' : 'justify-start'}`}
                             >
-                                <div className={`max-w-[85%] sm:max-w-[75%] ${message.is_mine ? 'items-end' : 'items-start'} flex flex-col`}>
+                                <div className={`max-w-full sm:max-w-[85%] lg:max-w-[75%] ${message.is_mine ? 'items-end' : 'items-start'} flex flex-col`}>
                                     <div
                                         className={`rounded-[24px] px-4 py-3 shadow-sm ${
                                             message.is_mine
@@ -343,7 +343,7 @@ export default function SupportChatPanel({
                         <button
                             type="submit"
                             disabled={disabled || sending || !draft.trim()}
-                            className="btn-fire disabled:cursor-not-allowed disabled:opacity-60"
+                            className="btn-fire w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                         >
                             {sending ? 'Sending...' : 'Send message'}
                         </button>

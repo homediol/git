@@ -529,14 +529,17 @@ class AdminController extends Controller
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'link' => 'nullable|string',
-            'media' => 'required|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv,webm|max:51200',
+            'media' => 'required|file|max:51200',
             'active' => 'boolean',
             'order' => 'integer',
             'duration' => 'integer|min:1|max:60',
         ]);
 
+        $this->ensureImageOrVideoUpload($request, 'media');
+
         $file = $request->file('media');
-        $type = in_array($file->extension(), ['mp4', 'mov', 'avi', 'wmv', 'webm']) ? 'video' : 'image';
+        $mime = (string) $file->getMimeType();
+        $type = str_starts_with($mime, 'video/') ? 'video' : 'image';
         $folder = $type === 'video' ? 'media/videos' : 'media/images';
         $path = $file->store($folder, 'public');
         
@@ -553,15 +556,17 @@ class AdminController extends Controller
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'link' => 'nullable|string',
-            'media' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv,webm|max:51200',
+            'media' => 'nullable|file|max:51200',
             'active' => 'boolean',
             'order' => 'integer',
             'duration' => 'integer|min:1|max:60',
         ]);
 
         if ($request->hasFile('media')) {
+            $this->ensureImageOrVideoUpload($request, 'media');
             $file = $request->file('media');
-            $type = in_array($file->extension(), ['mp4', 'mov', 'avi', 'wmv', 'webm']) ? 'video' : 'image';
+            $mime = (string) $file->getMimeType();
+            $type = str_starts_with($mime, 'video/') ? 'video' : 'image';
             $folder = $type === 'video' ? 'media/videos' : 'media/images';
             $path = $file->store($folder, 'public');
             $validated['media'] = '/storage/' . $path;
@@ -597,11 +602,12 @@ class AdminController extends Controller
             'bio' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
             'order' => 'integer',
         ]);
 
         if ($request->hasFile('image')) {
+            $this->ensureImageUpload($request, 'image');
             $path = $request->file('image')->store('team', 'public');
             $validated['image'] = '/storage/' . $path;
         }
@@ -618,7 +624,7 @@ class AdminController extends Controller
             'bio' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
             'order' => 'integer',
             'delete_image' => 'boolean',
         ]);
@@ -626,6 +632,7 @@ class AdminController extends Controller
         if ($request->has('delete_image') && $request->delete_image) {
             $validated['image'] = null;
         } elseif ($request->hasFile('image')) {
+            $this->ensureImageUpload($request, 'image');
             $path = $request->file('image')->store('team', 'public');
             $validated['image'] = '/storage/' . $path;
         } else {
@@ -642,6 +649,21 @@ class AdminController extends Controller
     {
         $team->delete();
         return back()->with('success', 'Team member deleted!');
+    }
+
+    private function ensureImageUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (!str_starts_with($mime, 'image/')) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload a valid image file.',
+            ]);
+        }
     }
 
     private function ensureImageOrVideoUpload(Request $request, string $field): void

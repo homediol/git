@@ -1,4 +1,6 @@
 import SupportChatPanel from '@/Components/SupportChatPanel';
+import SupportCallButton from '@/Components/SupportCallButton';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 import PublicLayout from '@/Layouts/PublicLayout';
 import axios from 'axios';
 import { Head, usePage } from '@inertiajs/react';
@@ -143,6 +145,13 @@ export default function GuestMessagesIndex({
                             <p className="mt-2 max-w-2xl text-sm text-slate-600">
                                 Start as a guest, leave your contact details, and keep chatting with the studio team in this browser session.
                             </p>
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                <SupportWhatsAppButton
+                                    message="Hello Pavona admin, I need help with guest support chat."
+                                    showPhone
+                                />
+                                <SupportCallButton showPhone />
+                            </div>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="chat-stat-card px-5 py-4">

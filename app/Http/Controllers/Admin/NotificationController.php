@@ -9,6 +9,7 @@ use App\Notifications\GenericNotification;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class NotificationController extends Controller
@@ -59,10 +60,11 @@ class NotificationController extends Controller
             'action_text_en' => 'nullable|string|max:255',
             'action_text_fr' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:50',
-            'media' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,webm,ogg,mp3,wav,m4a|max:512000',
+            'media' => 'nullable|file|max:512000',
         ]);
 
         $broadcastId = (string) Str::uuid();
+        $this->ensureNotificationMediaUpload($request, 'media');
         $mediaPayload = $this->storeMedia($request);
 
         $payload = [
@@ -120,7 +122,7 @@ class NotificationController extends Controller
             'action_text_fr' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:50',
             'clear_media' => 'nullable|boolean',
-            'media' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,webm,ogg,mp3,wav,m4a|max:512000',
+            'media' => 'nullable|file|max:512000',
         ]);
 
         $payload = $notification->data;
@@ -145,6 +147,7 @@ class NotificationController extends Controller
             $payload['media_name'] = null;
         }
 
+        $this->ensureNotificationMediaUpload($request, 'media');
         $mediaPayload = $this->storeMedia($request);
         if (!empty($mediaPayload)) {
             $payload = array_merge($payload, $mediaPayload);
@@ -179,6 +182,25 @@ class NotificationController extends Controller
         ]);
 
         return back()->with('success', 'Notification deleted.');
+    }
+
+    private function ensureNotificationMediaUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (
+            !str_starts_with($mime, 'image/')
+            && !str_starts_with($mime, 'video/')
+            && !str_starts_with($mime, 'audio/')
+        ) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload a valid image, video, or audio file.',
+            ]);
+        }
     }
 
     private function storeMedia(Request $request): array

@@ -6,9 +6,10 @@ import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import MediaPreview, { isAudioFile, isVideoFile } from '@/Components/MediaPreview';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 export default function AdminNotifications({ recentNotifications = [] }) {
-    const { data, setData, post, put, reset, errors } = useForm({
+    const { data, setData, post, reset, errors, setError, clearErrors, transform } = useForm({
         title_rw: '',
         title_en: '',
         title_fr: '',
@@ -28,38 +29,41 @@ export default function AdminNotifications({ recentNotifications = [] }) {
 
     const submit = (e) => {
         e.preventDefault();
-        const formData = new FormData();
-        formData.append('title_rw', data.title_rw);
-        formData.append('title_en', data.title_en || '');
-        formData.append('title_fr', data.title_fr || '');
-        formData.append('message_rw', data.message_rw || '');
-        formData.append('message_en', data.message_en || '');
-        formData.append('message_fr', data.message_fr || '');
-        formData.append('action_url', data.action_url || '');
-        formData.append('action_text_rw', data.action_text_rw || '');
-        formData.append('action_text_en', data.action_text_en || '');
-        formData.append('action_text_fr', data.action_text_fr || '');
-        formData.append('type', data.type || 'info');
-        if (data.media instanceof File) {
-            formData.append('media', data.media);
-        }
-        if (data.clear_media) {
-            formData.append('clear_media', '1');
-        }
+        transform((currentData) => {
+            const payload = {
+                title_rw: currentData.title_rw,
+                title_en: currentData.title_en || '',
+                title_fr: currentData.title_fr || '',
+                message_rw: currentData.message_rw || '',
+                message_en: currentData.message_en || '',
+                message_fr: currentData.message_fr || '',
+                action_url: currentData.action_url || '',
+                action_text_rw: currentData.action_text_rw || '',
+                action_text_en: currentData.action_text_en || '',
+                action_text_fr: currentData.action_text_fr || '',
+                type: currentData.type || 'info',
+            };
 
-        if (editingId) {
-            put(route('admin.notifications.update', editingId), {
-                data: formData,
-                forceFormData: true,
-                onSuccess: () => handleReset(),
-            });
-        } else {
-            post(route('admin.notifications.store'), {
-                data: formData,
-                forceFormData: true,
-                onSuccess: () => handleReset(),
-            });
-        }
+            if (currentData.media instanceof File) {
+                payload.media = currentData.media;
+            }
+
+            if (currentData.clear_media) {
+                payload.clear_media = '1';
+            }
+
+            if (editingId) {
+                payload._method = 'put';
+            }
+
+            return payload;
+        });
+
+        post(editingId ? route('admin.notifications.update', editingId) : route('admin.notifications.store'), {
+            forceFormData: true,
+            onSuccess: () => handleReset(),
+            onFinish: () => transform((currentData) => currentData),
+        });
     };
 
     const handleReset = () => {
@@ -136,6 +140,24 @@ export default function AdminNotifications({ recentNotifications = [] }) {
         if (!(data.media instanceof File) || !previewSrc) return;
         return () => URL.revokeObjectURL(previewSrc);
     }, [data.media, previewSrc]);
+
+    const handleMediaChange = (event) => {
+        const file = event.target.files[0];
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            setError('media', error);
+            event.target.value = '';
+            return;
+        }
+
+        clearErrors('media');
+        setData('media', file ?? null);
+
+        if (file) {
+            setData('clear_media', false);
+        }
+    };
 
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-gray-800">Send Notifications</h2>}>
@@ -238,13 +260,10 @@ export default function AdminNotifications({ recentNotifications = [] }) {
                                 <input
                                     type="file"
                                     accept="image/*,video/*,audio/*"
-                                    onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        setData('media', file);
-                                        if (file) setData('clear_media', false);
-                                    }}
+                                    onChange={handleMediaChange}
                                     className="mt-2 text-sm text-gray-600"
                                 />
+                                <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported. Audio and video keep the current server limits.</p>
                                 <InputError message={errors.media} className="mt-2" />
                                 {editingId && currentMedia && (
                                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-600">

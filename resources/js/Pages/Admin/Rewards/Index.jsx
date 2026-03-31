@@ -6,6 +6,7 @@ import InputLabel from '@/Components/InputLabel';
 import MediaPreview, { isVideoFile } from '@/Components/MediaPreview';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 function formatDateTime(value) {
     if (!value) {
@@ -17,7 +18,7 @@ function formatDateTime(value) {
 
 export default function RewardsAdminIndex({ rewards = [], userRewards = [], rewinds = [] }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
+    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm({
         name_rw: '',
         name_en: '',
         name_fr: '',
@@ -48,38 +49,37 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [], rewi
 
     const submit = (event) => {
         event.preventDefault();
+        transform((currentData) => {
+            const payload = {
+                name_rw: currentData.name_rw,
+                name_en: currentData.name_en || '',
+                name_fr: currentData.name_fr || '',
+                slug: currentData.slug,
+                description_rw: currentData.description_rw || '',
+                description_en: currentData.description_en || '',
+                description_fr: currentData.description_fr || '',
+                expires_after_days: currentData.expires_after_days || 30,
+                is_active: currentData.is_active ? '1' : '0',
+            };
 
-        const formData = new FormData();
-        formData.append('name_rw', data.name_rw);
-        formData.append('name_en', data.name_en || '');
-        formData.append('name_fr', data.name_fr || '');
-        formData.append('slug', data.slug);
-        formData.append('description_rw', data.description_rw || '');
-        formData.append('description_en', data.description_en || '');
-        formData.append('description_fr', data.description_fr || '');
-        formData.append('expires_after_days', data.expires_after_days || 30);
-        formData.append('is_active', data.is_active ? '1' : '0');
+            if (currentData.image instanceof File) {
+                payload.image = currentData.image;
+            }
 
-        if (data.image instanceof File) {
-            formData.append('image', data.image);
-        }
+            if (editing) {
+                payload._method = 'put';
+            }
 
-        if (editing) {
-            put(route('admin.rewards.update', editing), {
-                data: formData,
-                forceFormData: true,
-                onSuccess: () => {
-                    reset();
-                    setEditing(null);
-                },
-            });
-            return;
-        }
+            return payload;
+        });
 
-        post(route('admin.rewards.store'), {
-            data: formData,
+        post(editing ? route('admin.rewards.update', editing) : route('admin.rewards.store'), {
             forceFormData: true,
-            onSuccess: () => reset(),
+            onSuccess: () => {
+                reset();
+                setEditing(null);
+            },
+            onFinish: () => transform((currentData) => currentData),
         });
     };
 
@@ -103,6 +103,20 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [], rewi
         if (confirm('Delete this reward?')) {
             destroy(route('admin.rewards.destroy', rewardId));
         }
+    };
+
+    const handleMediaChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            setError('image', error);
+            event.target.value = '';
+            return;
+        }
+
+        clearErrors('image');
+        setData('image', file ?? '');
     };
 
     const updateUserReward = (userRewardId) => {
@@ -269,9 +283,11 @@ export default function RewardsAdminIndex({ rewards = [], userRewards = [], rewi
                                     <input
                                         type="file"
                                         accept="image/*,video/*"
-                                        onChange={(event) => setData('image', event.target.files[0])}
+                                        onChange={handleMediaChange}
                                         className="mt-2 block w-full text-sm text-slate-600"
                                     />
+                                    <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
+                                    <InputError message={errors.image} className="mt-2" />
                                 </div>
                                 <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
                                     <input

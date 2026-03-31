@@ -4,9 +4,9 @@ import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
 
 const statusClasses = {
-    pending: 'bg-amber-100 text-amber-700',
-    approved: 'bg-emerald-100 text-emerald-700',
-    rejected: 'bg-rose-100 text-rose-700',
+    pending: 'booking-status-pending',
+    approved: 'booking-status-approved',
+    rejected: 'booking-status-rejected',
 };
 
 const localeMap = {
@@ -136,7 +136,7 @@ export default function AdminBookingsIndex({ bookings = [], stats = {} }) {
                                                 <h3 className="text-xl font-semibold text-slate-900">
                                                     {getLocalizedValue(locale, booking.service, 'title') || booking.service?.title || t('booking.admin.unknown_service', 'Unknown service')}
                                                 </h3>
-                                                <span className={`booking-status-pill ${statusClasses[booking.status] || 'bg-slate-100 text-slate-700'}`}>
+                                                <span className={`booking-status-pill ${statusClasses[booking.status] || 'booking-status-neutral'}`}>
                                                     {statusLabel(t, booking.status)}
                                                 </span>
                                             </div>
@@ -162,7 +162,7 @@ export default function AdminBookingsIndex({ bookings = [], stats = {} }) {
                                                 type="button"
                                                 onClick={() => updateBooking(booking.id, 'reject')}
                                                 disabled={booking.status === 'rejected'}
-                                                className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-200 transition hover:translate-y-[-1px] hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="admin-booking-action-danger disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 {t('booking.admin.reject', 'Reject')}
                                             </button>
@@ -183,29 +183,29 @@ export default function AdminBookingsIndex({ bookings = [], stats = {} }) {
                                         <div className="booking-timeline-card p-5">
                                             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{t('booking.admin.details.title', 'Booking details')}</p>
                                             {booking.description ? (
-                                                <p className="mt-4 rounded-3xl bg-orange-50/70 px-4 py-4 text-sm leading-7 text-slate-600">{booking.description}</p>
+                                                <p className="admin-booking-description mt-4 px-4 py-4 text-sm leading-7">{booking.description}</p>
                                             ) : (
                                                 <p className="mt-4 text-sm text-slate-500">{t('booking.admin.details.empty', 'No additional description provided.')}</p>
                                             )}
 
                                             <div className="mt-5 flex flex-wrap gap-2">
                                                 {booking.user_reward?.reward ? (
-                                                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                                    <span className="admin-booking-chip admin-booking-chip-success">
                                                         {t('booking.admin.reward_used', 'Reward used')}: {getLocalizedValue(locale, booking.user_reward.reward, 'name') || booking.user_reward.reward.name}
                                                     </span>
                                                 ) : (
-                                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                                    <span className="admin-booking-chip admin-booking-chip-muted">
                                                         {t('booking.admin.no_reward', 'No reward applied')}
                                                     </span>
                                                 )}
                                                 {booking.approved_at && (
-                                                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                                    <span className="admin-booking-chip admin-booking-chip-success">
                                                         {t('booking.admin.approved_on', 'Approved')}{' '}
                                                         {formatDate(booking.approved_at, locale, emptyDateLabel)}
                                                     </span>
                                                 )}
                                                 {booking.rejected_at && (
-                                                    <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                                                    <span className="admin-booking-chip admin-booking-chip-danger">
                                                         {t('booking.admin.rejected_on', 'Rejected')}{' '}
                                                         {formatDate(booking.rejected_at, locale, emptyDateLabel)}
                                                     </span>

@@ -62,9 +62,9 @@ export default function AuthenticatedLayout({ header, children }) {
             ),
         },
         {
-            label: 'Rewards',
-            href: route('rewards.index'),
-            active: route().current('rewards.index'),
+            label: user?.role === 'admin' ? 'Admin Rewards' : 'Rewards',
+            href: user?.role === 'admin' ? route('admin.rewards') : route('rewards.index'),
+            active: user?.role === 'admin' ? route().current('admin.rewards*') : route().current('rewards.index'),
             icon: (
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 9h12v11H6z" />
@@ -74,9 +74,9 @@ export default function AuthenticatedLayout({ header, children }) {
             ),
         },
         {
-            label: 'Bookings',
-            href: route('bookings.index'),
-            active: route().current('bookings.*'),
+            label: user?.role === 'admin' ? 'Admin Bookings' : 'Bookings',
+            href: user?.role === 'admin' ? route('admin.bookings') : route('bookings.index'),
+            active: user?.role === 'admin' ? route().current('admin.bookings*') : route().current('bookings.*'),
             icon: (
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 3v3M17 3v3M4 9h16M5 6h14a1 1 0 011 1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a1 1 0 011-1z" />
@@ -117,6 +117,17 @@ export default function AuthenticatedLayout({ header, children }) {
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6l7-3z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 12.5l2 2 4-4" />
+                </svg>
+            ),
+        });
+        navItems.push({
+            label: 'Settings',
+            href: route('admin.settings'),
+            active: route().current('admin.settings'),
+            icon: (
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.5A2.5 2.5 0 1 1 12 14.5A2.5 2.5 0 0 1 12 9.5Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.2a1 1 0 0 0-.9.6Z" />
                 </svg>
             ),
         });
@@ -203,7 +214,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 {sidebarOpen && (
                     <div className="fixed inset-0 z-50 flex lg:hidden">
                         <div className="flex-1 bg-slate-900/60" onClick={() => setSidebarOpen(false)}></div>
-                        <aside className="w-72 px-6 py-8 text-[color:var(--md-sidebar-text)] backdrop-blur-xl bg-[color:var(--md-sidebar-bg)] border-l border-[color:var(--md-sidebar-border)]">
+                        <aside className="w-[min(20rem,86vw)] overflow-y-auto px-5 py-6 text-[color:var(--md-sidebar-text)] backdrop-blur-xl bg-[color:var(--md-sidebar-bg)] border-l border-[color:var(--md-sidebar-border)] sm:px-6 sm:py-8">
                             <div className="flex items-center justify-between mb-8">
                                 <Link href="/" className="flex items-center gap-3">
                                     <PavonaLogo className="w-9 h-9" />
@@ -233,7 +244,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
                 <div className="flex-1 min-h-screen">
                     <header className="sticky top-0 z-40">
-                        <div className="glass-dark flex items-center justify-between border-b px-6 py-4 bg-[color:var(--md-shell-header-bg)] border-[color:var(--md-shell-header-border)]">
+                        <div className="glass-dark flex items-center justify-between border-b bg-[color:var(--md-shell-header-bg)] px-4 py-3 border-[color:var(--md-shell-header-border)] sm:px-6 sm:py-4">
                             <div className="flex items-center gap-3">
                                 <button
                                     type="button"
@@ -244,9 +255,9 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                                     </svg>
                                 </button>
-                                <p className="text-sm text-[color:var(--md-muted)]">Welcome back, {user.name}</p>
+                                <p className="hidden text-sm text-[color:var(--md-muted)] sm:block">Welcome back, {user.name}</p>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 sm:gap-4">
                                 <LanguageSwitcher />
                                 <NotificationBell />
                                 <Dropdown>
@@ -254,9 +265,9 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition duration-150 ease-in-out text-[color:var(--md-nav-link)] hover:text-[color:var(--md-nav-link-hover)] focus:outline-none"
+                                                className="inline-flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition duration-150 ease-in-out text-[color:var(--md-nav-link)] hover:text-[color:var(--md-nav-link-hover)] focus:outline-none sm:px-3"
                                             >
-                                                {user.name}
+                                                <span className="hidden sm:inline">{user.name}</span>
                                                 <svg className="-me-0.5 ms-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                                 </svg>
@@ -274,14 +285,14 @@ export default function AuthenticatedLayout({ header, children }) {
                     </header>
 
                     {header && (
-                        <div className="mx-6 mt-6 rounded-2xl glass p-6">
+                        <div className="mx-4 mt-4 rounded-2xl glass p-4 sm:mx-6 sm:mt-6 sm:p-6">
                             {header}
                         </div>
                     )}
 
                     <FlashMessage />
 
-                    <main className="px-6 py-8">{children}</main>
+                    <main className="px-4 py-6 sm:px-6 sm:py-8">{children}</main>
                 </div>
             </div>
 

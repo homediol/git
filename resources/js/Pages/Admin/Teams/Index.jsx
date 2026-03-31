@@ -1,10 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
+import AdminMediaHint from '@/Components/AdminMediaHint';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 export default function TeamsIndex({ teams, flash }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, put, reset, errors } = useForm({
+    const { data, setData, post, put, reset, errors, setError, clearErrors } = useForm({
         name: '',
         position: '',
         bio: '',
@@ -57,6 +59,20 @@ export default function TeamsIndex({ teams, flash }) {
         }
     };
 
+    const handleImageChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            setError('image', error);
+            event.target.value = '';
+            return;
+        }
+
+        clearErrors('image');
+        setData('image', file ?? null);
+    };
+
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-gray-800">Manage Team</h2>}>
             <Head title="Manage Team" />
@@ -100,7 +116,15 @@ export default function TeamsIndex({ teams, flash }) {
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Image</label>
-                                    <input type="file" onChange={e => setData('image', e.target.files[0])} className="w-full" accept="image/*" />
+                                    <input type="file" onChange={handleImageChange} className="w-full" accept="image/*" />
+                                    <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
+                                    <AdminMediaHint
+                                        title="About Card Fit"
+                                        recommendedSize="1000 x 1000 px or larger"
+                                        ratio="1:1 square"
+                                        note="This image appears as a round team avatar on the About page. Keep the face centered so the circle crop does not cut it off."
+                                    />
+                                    {errors.image && <p className="mt-2 text-sm text-red-500">{errors.image}</p>}
                                     {editing?.image && (
                                         <div className="mt-2 flex items-center gap-2">
                                             <img src={editing.image} alt="Current" className="w-16 h-16 object-cover rounded" />

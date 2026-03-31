@@ -6,10 +6,11 @@ import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import MediaPreview from '@/Components/MediaPreview';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 export default function SubServices({ service, subServices = [] }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
+    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm({
         title: '',
         description: '',
         image: '',
@@ -17,26 +18,36 @@ export default function SubServices({ service, subServices = [] }) {
 
     const submit = (e) => {
         e.preventDefault();
-        const formData = new FormData();
-        formData.append('title', data.title || '');
-        formData.append('description', data.description || '');
-        if (data.image instanceof File) {
-            formData.append('image', data.image);
-        }
+        transform((currentData) => {
+            const payload = {
+                title: currentData.title || '',
+                description: currentData.description || '',
+            };
 
-        if (editing) {
-            put(route('admin.services.subservices.update', [service.id, editing]), {
-                data: formData,
+            if (currentData.image instanceof File) {
+                payload.image = currentData.image;
+            }
+
+            if (editing) {
+                payload._method = 'put';
+            }
+
+            return payload;
+        });
+
+        post(
+            editing
+                ? route('admin.services.subservices.update', [service.id, editing])
+                : route('admin.services.subservices.store', service.id),
+            {
                 forceFormData: true,
-                onSuccess: () => { reset(); setEditing(null); },
-            });
-        } else {
-            post(route('admin.services.subservices.store', service.id), {
-                data: formData,
-                forceFormData: true,
-                onSuccess: () => reset(),
-            });
-        }
+                onSuccess: () => {
+                    reset();
+                    setEditing(null);
+                },
+                onFinish: () => transform((currentData) => currentData),
+            }
+        );
     };
 
     const edit = (subService) => {
@@ -52,6 +63,20 @@ export default function SubServices({ service, subServices = [] }) {
         if (confirm('Delete this sub-service?')) {
             destroy(route('admin.services.subservices.destroy', [service.id, id]));
         }
+    };
+
+    const handleMediaChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            setError('image', error);
+            event.target.value = '';
+            return;
+        }
+
+        clearErrors('image');
+        setData('image', file ?? '');
     };
 
     return (
@@ -100,9 +125,10 @@ export default function SubServices({ service, subServices = [] }) {
                                 <input
                                     type="file"
                                     accept="image/*,video/*"
-                                    onChange={(e) => setData('image', e.target.files[0])}
+                                    onChange={handleMediaChange}
                                     className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700"
                                 />
+                                <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
                                 <InputError message={errors.image} className="mt-2" />
                                 {data.image && typeof data.image === 'string' && (
                                     <MediaPreview

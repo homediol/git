@@ -11,6 +11,7 @@ use App\Notifications\GenericNotification;
 use App\Services\RewardService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class RewardController extends Controller
@@ -61,12 +62,13 @@ class RewardController extends Controller
             'description_rw' => 'nullable|string',
             'description_en' => 'nullable|string',
             'description_fr' => 'nullable|string',
-            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,webm,ogg|max:512000',
+            'image' => 'nullable|file|max:512000',
             'expires_after_days' => 'nullable|integer|min:1',
             'is_active' => 'nullable|boolean',
         ]);
 
         if ($request->hasFile('image')) {
+            $this->ensureRewardMediaUpload($request, 'image');
             $path = $request->file('image')->store('rewards', 'public');
             $validated['image'] = '/storage/' . $path;
         }
@@ -110,12 +112,13 @@ class RewardController extends Controller
             'description_rw' => 'nullable|string',
             'description_en' => 'nullable|string',
             'description_fr' => 'nullable|string',
-            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,webm,ogg|max:512000',
+            'image' => 'nullable|file|max:512000',
             'expires_after_days' => 'nullable|integer|min:1',
             'is_active' => 'nullable|boolean',
         ]);
 
         if ($request->hasFile('image')) {
+            $this->ensureRewardMediaUpload($request, 'image');
             $path = $request->file('image')->store('rewards', 'public');
             $validated['image'] = '/storage/' . $path;
         } else {
@@ -149,6 +152,21 @@ class RewardController extends Controller
         ]);
 
         return back()->with('success', 'Reward updated.');
+    }
+
+    private function ensureRewardMediaUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (!str_starts_with($mime, 'image/') && !str_starts_with($mime, 'video/')) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload a valid image or video file.',
+            ]);
+        }
     }
 
     public function destroy(Request $request, Reward $reward)

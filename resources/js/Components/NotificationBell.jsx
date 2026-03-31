@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
 import MediaPreview from '@/Components/MediaPreview';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 
 export default function NotificationBell() {
     const { auth, notifications: initialNotifications, publicAnnouncements = [] } = usePage().props;
@@ -139,6 +140,7 @@ export default function NotificationBell() {
                 onClick={() => setOpen((prev) => !prev)}
                 className="icon-btn relative"
                 aria-label={t('notifications.title')}
+                aria-expanded={open}
             >
                 <svg className="w-5 h-5 text-[color:var(--md-text)]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4a2 2 0 01-.6-1.4V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0m6 0H9" />
@@ -151,7 +153,7 @@ export default function NotificationBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 mt-3 w-80 rounded-2xl bg-white border border-[color:var(--md-outline)] shadow-elevated p-4 z-50">
+                <div className="notification-dropdown-panel fixed inset-x-4 top-20 z-50 rounded-2xl border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] p-4 shadow-elevated sm:absolute sm:right-0 sm:top-auto sm:mt-3 sm:w-80 sm:max-w-[22rem] sm:inset-x-auto">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-semibold text-[color:var(--md-text)]">{t('notifications.title')}</span>
                         <div className="flex items-center gap-3">
@@ -183,11 +185,11 @@ export default function NotificationBell() {
                             {isGuest ? t('notifications.none_guest') : t('notifications.none_user')}
                         </p>
                     ) : (
-                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                        <div className="notification-dropdown-list space-y-3 max-h-[min(65vh,24rem)] overflow-y-auto pr-1">
                             {items.map((item) => {
                                 if (item.kind === 'guest_prompt') {
                                     return (
-                                        <div key={item.id} className="rounded-xl border border-[color:var(--md-outline)] bg-white/95 p-4 shadow-sm">
+                                        <div key={item.id} className="rounded-xl border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] p-4 shadow-sm">
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="fire-gradient rounded-lg px-3 py-2 text-white text-[10px] font-semibold uppercase tracking-[0.25em]">
                                                     {t('notifications.guest_title')}
@@ -216,7 +218,7 @@ export default function NotificationBell() {
                                 return (
                                 <div
                                     key={item.id}
-                                    className={`rounded-xl p-3 border transition ${item.read_at ? 'border-[color:var(--md-outline)] bg-white' : 'border-[rgba(66,133,244,0.35)] bg-[rgba(66,133,244,0.08)]'}`}
+                                    className={`notification-dropdown-item rounded-xl border p-3 transition ${item.read_at ? 'border-[color:var(--md-outline)] bg-[color:var(--md-surface)]' : 'border-[rgba(66,133,244,0.35)] bg-[rgba(66,133,244,0.08)]'}`}
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
@@ -275,16 +277,22 @@ export default function NotificationBell() {
                         </div>
                     )}
 
-                    {!isGuest && (
-                        <div className="mt-3 border-t border-[color:var(--md-outline)] pt-3">
+                    <div className="mt-3 border-t border-[color:var(--md-outline)] pt-3">
+                        <SupportWhatsAppButton
+                            message="Hello Pavona admin, I need help with notifications."
+                            label={t('support.whatsapp.short', 'WhatsApp admin')}
+                            className="px-3 py-2 text-xs"
+                            fullWidth
+                        />
+                        {!isGuest && (
                             <Link
                                 href={route('profile.edit')}
-                                className="inline-flex text-xs font-semibold text-[color:var(--md-secondary)] hover:underline"
+                                className="mt-3 inline-flex text-xs font-semibold text-[color:var(--md-secondary)] hover:underline"
                             >
                                 Manage notification settings
                             </Link>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             )}
         </div>

@@ -5,6 +5,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 const audienceLabels = {
     all_users: 'All users',
@@ -98,6 +99,34 @@ export default function PromotionsIndex({
         ends_at: '',
     });
 
+    const handleCampaignImageChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            campaignForm.setError('image', error);
+            event.target.value = '';
+            return;
+        }
+
+        campaignForm.clearErrors('image');
+        campaignForm.setData('image', file ?? null);
+    };
+
+    const handlePublicPromotionImageChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            publicPromotionForm.setError('image', error);
+            event.target.value = '';
+            return;
+        }
+
+        publicPromotionForm.clearErrors('image');
+        publicPromotionForm.setData('image', file ?? '');
+    };
+
     const serviceLookup = Object.fromEntries(serviceOptions.map((service) => [service.id, service.title]));
 
     const resetCampaignForm = () => {
@@ -135,95 +164,97 @@ export default function PromotionsIndex({
 
     const submitCampaign = (event) => {
         event.preventDefault();
+        campaignForm.transform((currentData) => {
+            const payload = {
+                name: currentData.name,
+                title_rw: currentData.title_rw,
+                title_en: currentData.title_en || '',
+                title_fr: currentData.title_fr || '',
+                message_rw: currentData.message_rw,
+                message_en: currentData.message_en || '',
+                message_fr: currentData.message_fr || '',
+                cta_text_rw: currentData.cta_text_rw || '',
+                cta_text_en: currentData.cta_text_en || '',
+                cta_text_fr: currentData.cta_text_fr || '',
+                cta_url: currentData.cta_url || '',
+                audience_type: currentData.audience_type,
+                user_age_segment: currentData.user_age_segment,
+                new_user_window_days: currentData.new_user_window_days || 30,
+                reward_filter: currentData.reward_filter,
+                reference_reward_id: currentData.reference_reward_id || '',
+                smart_reward_mode: currentData.smart_reward_mode ? '1' : '0',
+                discount_percent: currentData.discount_percent || '',
+                discount_code: currentData.discount_code || '',
+                send_in_app: currentData.send_in_app ? '1' : '0',
+                send_email: currentData.send_email ? '1' : '0',
+                send_sms: currentData.send_sms ? '1' : '0',
+                target_user_ids: currentData.target_user_ids,
+                target_service_ids: currentData.target_service_ids,
+            };
 
-        const formData = new FormData();
-        formData.append('name', campaignForm.data.name);
-        formData.append('title_rw', campaignForm.data.title_rw);
-        formData.append('title_en', campaignForm.data.title_en || '');
-        formData.append('title_fr', campaignForm.data.title_fr || '');
-        formData.append('message_rw', campaignForm.data.message_rw);
-        formData.append('message_en', campaignForm.data.message_en || '');
-        formData.append('message_fr', campaignForm.data.message_fr || '');
-        formData.append('cta_text_rw', campaignForm.data.cta_text_rw || '');
-        formData.append('cta_text_en', campaignForm.data.cta_text_en || '');
-        formData.append('cta_text_fr', campaignForm.data.cta_text_fr || '');
-        formData.append('cta_url', campaignForm.data.cta_url || '');
-        formData.append('audience_type', campaignForm.data.audience_type);
-        formData.append('user_age_segment', campaignForm.data.user_age_segment);
-        formData.append('new_user_window_days', campaignForm.data.new_user_window_days || 30);
-        formData.append('reward_filter', campaignForm.data.reward_filter);
-        formData.append('reference_reward_id', campaignForm.data.reference_reward_id || '');
-        formData.append('smart_reward_mode', campaignForm.data.smart_reward_mode ? '1' : '0');
-        formData.append('discount_percent', campaignForm.data.discount_percent || '');
-        formData.append('discount_code', campaignForm.data.discount_code || '');
-        formData.append('send_in_app', campaignForm.data.send_in_app ? '1' : '0');
-        formData.append('send_email', campaignForm.data.send_email ? '1' : '0');
-        formData.append('send_sms', campaignForm.data.send_sms ? '1' : '0');
+            if (currentData.image instanceof File) {
+                payload.image = currentData.image;
+            }
 
-        campaignForm.data.target_user_ids.forEach((userId) => {
-            formData.append('target_user_ids[]', userId);
+            return payload;
         });
-
-        campaignForm.data.target_service_ids.forEach((serviceId) => {
-            formData.append('target_service_ids[]', serviceId);
-        });
-
-        if (campaignForm.data.image instanceof File) {
-            formData.append('image', campaignForm.data.image);
-        }
 
         campaignForm.post(route('admin.promotions.campaigns.store'), {
-            data: formData,
             forceFormData: true,
             onSuccess: () => resetCampaignForm(),
+            onFinish: () => campaignForm.transform((currentData) => currentData),
         });
     };
 
     const submitPublicPromotion = (event) => {
         event.preventDefault();
+        publicPromotionForm.transform((currentData) => {
+            const payload = {
+                title_rw: currentData.title_rw,
+                title_en: currentData.title_en || '',
+                title_fr: currentData.title_fr || '',
+                message_rw: currentData.message_rw,
+                message_en: currentData.message_en || '',
+                message_fr: currentData.message_fr || '',
+                cta_text_rw: currentData.cta_text_rw || '',
+                cta_text_en: currentData.cta_text_en || '',
+                cta_text_fr: currentData.cta_text_fr || '',
+                cta_url: currentData.cta_url || '',
+                is_active: currentData.is_active ? '1' : '0',
+            };
 
-        const formData = new FormData();
-        formData.append('title_rw', publicPromotionForm.data.title_rw);
-        formData.append('title_en', publicPromotionForm.data.title_en || '');
-        formData.append('title_fr', publicPromotionForm.data.title_fr || '');
-        formData.append('message_rw', publicPromotionForm.data.message_rw);
-        formData.append('message_en', publicPromotionForm.data.message_en || '');
-        formData.append('message_fr', publicPromotionForm.data.message_fr || '');
-        formData.append('cta_text_rw', publicPromotionForm.data.cta_text_rw || '');
-        formData.append('cta_text_en', publicPromotionForm.data.cta_text_en || '');
-        formData.append('cta_text_fr', publicPromotionForm.data.cta_text_fr || '');
-        formData.append('cta_url', publicPromotionForm.data.cta_url || '');
-        formData.append('is_active', publicPromotionForm.data.is_active ? '1' : '0');
+            if (currentData.starts_at) {
+                payload.starts_at = currentData.starts_at;
+            }
 
-        if (publicPromotionForm.data.starts_at) {
-            formData.append('starts_at', publicPromotionForm.data.starts_at);
-        }
+            if (currentData.ends_at) {
+                payload.ends_at = currentData.ends_at;
+            }
 
-        if (publicPromotionForm.data.ends_at) {
-            formData.append('ends_at', publicPromotionForm.data.ends_at);
-        }
+            if (currentData.image instanceof File) {
+                payload.image = currentData.image;
+            }
 
-        if (publicPromotionForm.data.image instanceof File) {
-            formData.append('image', publicPromotionForm.data.image);
-        }
+            if (editingPromotion) {
+                payload._method = 'put';
+            }
 
-        if (editingPromotion) {
-            publicPromotionForm.put(route('admin.promotions.update', editingPromotion), {
-                data: formData,
+            return payload;
+        });
+
+        publicPromotionForm.post(
+            editingPromotion
+                ? route('admin.promotions.update', editingPromotion)
+                : route('admin.promotions.store'),
+            {
                 forceFormData: true,
                 onSuccess: () => {
                     publicPromotionForm.reset();
                     setEditingPromotion(null);
                 },
-            });
-            return;
-        }
-
-        publicPromotionForm.post(route('admin.promotions.store'), {
-            data: formData,
-            forceFormData: true,
-            onSuccess: () => publicPromotionForm.reset(),
-        });
+                onFinish: () => publicPromotionForm.transform((currentData) => currentData),
+            }
+        );
     };
 
     const editPromotion = (promotion) => {
@@ -668,9 +699,10 @@ export default function PromotionsIndex({
                                             <input
                                                 type="file"
                                                 accept="image/*"
-                                                onChange={(event) => campaignForm.setData('image', event.target.files[0])}
+                                                onChange={handleCampaignImageChange}
                                                 className="mt-2 block w-full text-sm text-slate-600"
                                             />
+                                            <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
                                             <InputError message={campaignForm.errors.image} className="mt-2" />
                                         </div>
                                     </div>
@@ -936,9 +968,10 @@ export default function PromotionsIndex({
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        onChange={(event) => publicPromotionForm.setData('image', event.target.files[0])}
+                                        onChange={handlePublicPromotionImageChange}
                                         className="mt-2 block w-full text-sm text-slate-600"
                                     />
+                                    <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
                                     <InputError message={publicPromotionForm.errors.image} className="mt-2" />
                                 </div>
                             </div>

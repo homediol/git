@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import AdCircleGrid from '@/Components/AdCircleGrid';
+import { bookingPhone, bookingWhatsAppUrl } from '@/Components/BookingContactActions';
 import { useLocale } from '@/Providers/LocaleProvider';
 
 export default function Contact({ auth, flash, advertisements = [], settings }) {
@@ -156,12 +157,12 @@ export default function Contact({ auth, flash, advertisements = [], settings }) 
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <a href="tel:+250783752954" className="surface-soft rounded-xl p-4 text-center hover:shadow-elevated transition group">
-                                    <p className="font-semibold text-[color:var(--md-text)] text-sm">{t('contact.actions.call')}</p>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <a href={`tel:${bookingPhone}`} className="btn-call w-full">
+                                    <span>{t('contact.actions.call')}</span>
                                 </a>
-                                <a href="https://wa.me/250783752954" target="_blank" className="surface-soft rounded-xl p-4 text-center hover:shadow-elevated transition group" rel="noreferrer">
-                                    <p className="font-semibold text-[color:var(--md-text)] text-sm">{t('contact.actions.whatsapp')}</p>
+                                <a href={bookingWhatsAppUrl} target="_blank" className="btn-whatsapp w-full" rel="noreferrer">
+                                    <span>{t('contact.actions.whatsapp')}</span>
                                 </a>
                             </div>
 
@@ -187,7 +188,7 @@ export default function Contact({ auth, flash, advertisements = [], settings }) 
 
                     <div className="surface p-4 mb-12">
                         <h2 className="font-display text-xl sm:text-2xl font-semibold text-[color:var(--md-text)] mb-4">{t('contact.map.title')}</h2>
-                        <div className="w-full h-96 rounded-xl overflow-hidden">
+                        <div className="h-72 w-full overflow-hidden rounded-xl sm:h-96">
                             <iframe
                                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.1841!2d-73.9857!3d40.7484!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQ0JzU0LjIiTiA3M8KwNTknMDguNSJX!5e0!3m2!1sen!2sus!4v1234567890"
                                 width="100%"

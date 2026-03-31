@@ -4,6 +4,7 @@ import ThemeSelectionModal from '@/Components/ThemeSelectionModal';
 const ThemeContext = createContext({
     theme: 'light',
     setTheme: () => {},
+    toggleTheme: () => {},
     openThemePicker: () => {},
     hasSelectedTheme: false,
 });
@@ -119,6 +120,10 @@ export function ThemeProvider({ children }) {
         }
     };
 
+    const toggleTheme = () => {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
+    };
+
     const openThemePicker = () => {
         setIsThemePickerOpen(true);
     };
@@ -135,6 +140,7 @@ export function ThemeProvider({ children }) {
         () => ({
             theme,
             setTheme,
+            toggleTheme,
             openThemePicker,
             hasSelectedTheme,
         }),

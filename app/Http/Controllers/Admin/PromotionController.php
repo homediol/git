@@ -10,6 +10,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\UserActivity;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class PromotionController extends Controller
@@ -143,7 +144,7 @@ class PromotionController extends Controller
             'message_rw' => 'required|string',
             'message_en' => 'nullable|string',
             'message_fr' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
             'cta_text_rw' => 'nullable|string|max:255',
             'cta_text_en' => 'nullable|string|max:255',
             'cta_text_fr' => 'nullable|string|max:255',
@@ -154,6 +155,7 @@ class PromotionController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
+            $this->ensureImageUpload($request, 'image');
             $path = $request->file('image')->store('promotions', 'public');
             $validated['image'] = '/storage/' . $path;
         }
@@ -202,7 +204,7 @@ class PromotionController extends Controller
             'message_rw' => 'required|string',
             'message_en' => 'nullable|string',
             'message_fr' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:512000',
+            'image' => 'nullable|file|max:512000',
             'cta_text_rw' => 'nullable|string|max:255',
             'cta_text_en' => 'nullable|string|max:255',
             'cta_text_fr' => 'nullable|string|max:255',
@@ -213,6 +215,7 @@ class PromotionController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
+            $this->ensureImageUpload($request, 'image');
             $path = $request->file('image')->store('promotions', 'public');
             $validated['image'] = '/storage/' . $path;
         } else {
@@ -251,6 +254,21 @@ class PromotionController extends Controller
         ]);
 
         return back()->with('success', 'Promotion updated.');
+    }
+
+    private function ensureImageUpload(Request $request, string $field): void
+    {
+        if (!$request->hasFile($field)) {
+            return;
+        }
+
+        $mime = (string) $request->file($field)->getMimeType();
+
+        if (!str_starts_with($mime, 'image/')) {
+            throw ValidationException::withMessages([
+                $field => 'Please upload a valid image file.',
+            ]);
+        }
     }
 
     public function destroy(Request $request, Promotion $promotion)

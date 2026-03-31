@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\Promotion;
+use App\Models\SiteSettings;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -152,6 +153,7 @@ class HandleInertiaRequests extends Middleware
                 'description' => 'Professional digital solutions and creative services',
                 'keywords' => 'web development, design, portfolio, services',
             ],
+            'siteSettings' => fn () => SiteSettings::publicSettings(),
         ]);
     }
 }

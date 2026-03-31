@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocale } from '@/Providers/LocaleProvider';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 
 export default function AdSlider({ advertisements = [] }) {
     const { t } = useLocale();
@@ -99,6 +100,23 @@ export default function AdSlider({ advertisements = [] }) {
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
                             {ad.title && <h3 className="text-white text-2xl font-semibold mb-2 drop-shadow">{ad.title}</h3>}
                             {ad.description && <p className="text-white/90 text-sm drop-shadow">{ad.description}</p>}
+                            <div className="mt-4">
+                                <SupportWhatsAppButton
+                                    message={`Hello Pavona admin, I have a question about this advertisement${ad.title ? `: ${ad.title}` : ''}.`}
+                                    label={t('support.whatsapp.short', 'WhatsApp admin')}
+                                    className="px-4 py-2 text-xs"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {!ad.title && !ad.description && (
+                        <div className="absolute bottom-5 right-5">
+                            <SupportWhatsAppButton
+                                message="Hello Pavona admin, I have a question about this advertisement."
+                                label={t('support.whatsapp.short', 'WhatsApp admin')}
+                                className="px-4 py-2 text-xs"
+                            />
                         </div>
                     )}
                 </div>

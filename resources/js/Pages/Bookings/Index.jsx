@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import BookingContactActions from '@/Components/BookingContactActions';
 import MediaPreview from '@/Components/MediaPreview';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useLocale } from '@/Providers/LocaleProvider';
@@ -192,6 +193,7 @@ export default function BookingsIndex({ bookings = [], services = [], availableR
                                     <Link href={route('services')} className="btn-outline">
                                         {t('booking.browse_services', 'Browse services')}
                                     </Link>
+                                    <BookingContactActions />
                                     <span className="chip">
                                         {availableRewards.length} {t('nav.rewards', 'Rewards')}
                                     </span>
@@ -244,7 +246,7 @@ export default function BookingsIndex({ bookings = [], services = [], availableR
 
             <div className="booking-stage">
                 <div className="booking-layer space-y-6">
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         <div className="booking-stat-card animate-fire-entry p-5" style={motionStyle(80)}>
                             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{t('booking.stats.total', 'Total bookings')}</p>
                             <p className="mt-3 text-3xl font-black text-slate-900">{bookings.length}</p>
@@ -376,7 +378,7 @@ export default function BookingsIndex({ bookings = [], services = [], availableR
                                                 compatibleRewards.map((rewardItem, index) => (
                                                     <label
                                                         key={rewardItem.id}
-                                                        className={`booking-choice-card flex cursor-pointer items-start gap-4 px-4 py-4 animate-fire-entry ${
+                                                        className={`booking-choice-card flex cursor-pointer flex-col gap-4 px-4 py-4 animate-fire-entry sm:flex-row sm:items-start ${
                                                             String(data.user_reward_id) === String(rewardItem.id)
                                                                 ? 'booking-choice-card-active'
                                                                 : ''
@@ -394,7 +396,7 @@ export default function BookingsIndex({ bookings = [], services = [], availableR
                                                         <MediaPreview
                                                             src={resolveRewardImage(rewardItem, services)}
                                                             alt={getLocalizedValue(locale, rewardItem.reward, 'name') || rewardItem.reward?.name}
-                                                            className="h-24 w-24 rounded-[20px] object-cover"
+                                                            className="h-40 w-full rounded-[20px] object-cover sm:h-24 sm:w-24 sm:flex-shrink-0"
                                                             videoProps={{ controls: true, playsInline: true, preload: 'metadata' }}
                                                         />
                                                         <div className="flex-1">
@@ -427,7 +429,7 @@ export default function BookingsIndex({ bookings = [], services = [], availableR
                                     <button
                                         type="submit"
                                         disabled={processing || services.length === 0}
-                                        className="btn-fire disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="btn-fire w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                                     >
                                         {processing ? t('booking.submit.processing', 'Submitting...') : t('booking.submit.label', 'Send booking request')}
                                     </button>
@@ -493,11 +495,11 @@ export default function BookingsIndex({ bookings = [], services = [], availableR
                                                 className="booking-timeline-card animate-fire-entry p-5"
                                                 style={motionStyle(260 + index * 70)}
                                             >
-                                                <div className="flex flex-wrap items-start gap-4">
+                                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                                                     <img
                                                         src={resolveServiceImage(booking.service)}
                                                         alt={getLocalizedValue(locale, booking.service, 'title') || booking.service?.title}
-                                                        className="h-24 w-24 rounded-[20px] object-cover"
+                                                        className="h-40 w-full rounded-[20px] object-cover sm:h-24 sm:w-24 sm:flex-shrink-0"
                                                     />
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-start justify-between gap-3">

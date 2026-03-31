@@ -6,10 +6,12 @@ import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import MediaPreview from '@/Components/MediaPreview';
+import AdminMediaHint from '@/Components/AdminMediaHint';
+import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
 export default function PostsIndex({ posts }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, put, delete: destroy, reset, errors } = useForm({
+    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm({
         title: '',
         content: '',
         category: '',
@@ -19,30 +21,36 @@ export default function PostsIndex({ posts }) {
 
     const submit = (e) => {
         e.preventDefault();
-        const formData = new FormData();
-        formData.append('title', data.title);
-        formData.append('content', data.content);
-        formData.append('category', data.category);
-        if (data.image instanceof File) {
-            formData.append('image', data.image);
-        }
-        if (data.video instanceof File) {
-            formData.append('video', data.video);
-        }
-        
-        if (editing) {
-            put(route('admin.posts.update', editing), {
-                data: formData,
-                forceFormData: true,
-                onSuccess: () => { reset(); setEditing(null); }
-            });
-        } else {
-            post(route('admin.posts.store'), {
-                data: formData,
-                forceFormData: true,
-                onSuccess: () => reset()
-            });
-        }
+        transform((currentData) => {
+            const payload = {
+                title: currentData.title,
+                content: currentData.content,
+                category: currentData.category,
+            };
+
+            if (currentData.image instanceof File) {
+                payload.image = currentData.image;
+            }
+
+            if (currentData.video instanceof File) {
+                payload.video = currentData.video;
+            }
+
+            if (editing) {
+                payload._method = 'put';
+            }
+
+            return payload;
+        });
+
+        post(editing ? route('admin.posts.update', editing) : route('admin.posts.store'), {
+            forceFormData: true,
+            onSuccess: () => {
+                reset();
+                setEditing(null);
+            },
+            onFinish: () => transform((currentData) => currentData),
+        });
     };
 
     const edit = (postItem) => {
@@ -54,6 +62,20 @@ export default function PostsIndex({ posts }) {
         if (confirm('Delete this post?')) {
             destroy(route('admin.posts.destroy', id));
         }
+    };
+
+    const handleFeaturedMediaChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const error = getAdminImageUploadError(file);
+
+        if (error) {
+            setError('image', error);
+            event.target.value = '';
+            return;
+        }
+
+        clearErrors('image');
+        setData('image', file ?? '');
     };
 
     return (
@@ -91,7 +113,14 @@ export default function PostsIndex({ posts }) {
                             </div>
                             <div className="mb-4">
                                 <InputLabel value="Featured Media" />
-                                <input type="file" accept="image/*,video/*" onChange={(e) => setData('image', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
+                                <input type="file" accept="image/*,video/*" onChange={handleFeaturedMediaChange} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
+                                <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
+                                <AdminMediaHint
+                                    title="Blog Card Fit"
+                                    recommendedSize="1600 x 900 px or larger"
+                                    ratio="16:9 landscape"
+                                    note="This media is shown on blog cards and at the top of the blog detail page. Use a wide image and keep text or faces away from the outer edges."
+                                />
                                 <InputError message={errors.image} className="mt-2" />
                                 {data.image && typeof data.image === 'string' && (
                                     <MediaPreview
@@ -106,6 +135,12 @@ export default function PostsIndex({ posts }) {
                                 <InputLabel value="Video (Optional)" />
                                 <input type="file" accept="video/*" onChange={(e) => setData('video', e.target.files[0])} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700" />
                                 <p className="mt-2 text-xs font-medium text-slate-500">Any browser-supported video format is allowed.</p>
+                                <AdminMediaHint
+                                    title="Blog Video Fit"
+                                    recommendedSize="1920 x 1080 px recommended"
+                                    ratio="16:9 landscape"
+                                    note="Use the same wide format as featured images so the preview card and detail header do not crop awkwardly."
+                                />
                                 <InputError message={errors.video} className="mt-2" />
                                 {data.video && typeof data.video === 'string' && (
                                     <MediaPreview

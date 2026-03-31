@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocale } from '@/Providers/LocaleProvider';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 
 export default function AdCircleGrid({ advertisements = [] }) {
     const { t } = useLocale();
@@ -12,9 +13,12 @@ export default function AdCircleGrid({ advertisements = [] }) {
 
         let scrollPosition = 0;
         const scrollSpeed = 1;
-        const itemWidth = 192; // 160px + 32px gap
 
         const scroll = () => {
+            const firstItem = scrollContainer.querySelector('[data-ad-item]');
+            const computedStyles = window.getComputedStyle(scrollContainer);
+            const gap = Number.parseFloat(computedStyles.columnGap || computedStyles.gap || '0') || 0;
+            const itemWidth = (firstItem?.offsetWidth || (window.innerWidth < 640 ? 128 : 160)) + gap;
             scrollPosition += scrollSpeed;
             const maxScroll = itemWidth * activeAds.length;
             
@@ -36,12 +40,12 @@ export default function AdCircleGrid({ advertisements = [] }) {
 
     return (
         <div className="overflow-hidden">
-            <div ref={scrollRef} className="flex gap-8 overflow-x-hidden">
+            <div ref={scrollRef} className="flex gap-4 overflow-x-auto px-1 sm:gap-8 sm:overflow-x-hidden">
                 {duplicatedAds.map((ad, index) => (
-                    <div key={`${ad.id}-${index}`} className="flex-shrink-0 flex flex-col items-center group">
+                    <div key={`${ad.id}-${index}`} data-ad-item className="group flex flex-shrink-0 flex-col items-center">
                         {ad.link ? (
                             <a href={ad.link} target="_blank" rel="noopener noreferrer" className="block">
-                                <div className="w-40 h-40 rounded-full overflow-hidden shadow-elevated ring-4 ring-[rgba(251,188,5,0.35)] group-hover:ring-[rgba(255,109,0,0.55)] transition-all duration-300 group-hover:scale-110">
+                                <div className="h-28 w-28 overflow-hidden rounded-full shadow-elevated ring-4 ring-[rgba(251,188,5,0.35)] transition-all duration-300 group-hover:scale-110 group-hover:ring-[rgba(255,109,0,0.55)] sm:h-40 sm:w-40">
                                     {ad.type === 'video' ? (
                                         <video
                                             src={ad.media}
@@ -60,14 +64,14 @@ export default function AdCircleGrid({ advertisements = [] }) {
                                     )}
                                 </div>
                                 {ad.title && (
-                                    <p className="mt-4 text-center text-[color:var(--md-text)] text-base font-semibold group-hover:text-[color:var(--md-primary)] transition-colors w-40">
+                                    <p className="mt-3 w-28 text-center text-sm font-semibold text-[color:var(--md-text)] transition-colors group-hover:text-[color:var(--md-primary)] sm:mt-4 sm:w-40 sm:text-base">
                                         {ad.title}
                                     </p>
                                 )}
                             </a>
                         ) : (
                             <>
-                                <div className="w-40 h-40 rounded-full overflow-hidden shadow-elevated ring-4 ring-[rgba(251,188,5,0.35)] group-hover:ring-[rgba(255,109,0,0.55)] transition-all duration-300 group-hover:scale-110">
+                                <div className="h-28 w-28 overflow-hidden rounded-full shadow-elevated ring-4 ring-[rgba(251,188,5,0.35)] transition-all duration-300 group-hover:scale-110 group-hover:ring-[rgba(255,109,0,0.55)] sm:h-40 sm:w-40">
                                     {ad.type === 'video' ? (
                                         <video
                                             src={ad.media}
@@ -86,7 +90,7 @@ export default function AdCircleGrid({ advertisements = [] }) {
                                     )}
                                 </div>
                                 {ad.title && (
-                                    <p className="mt-4 text-center text-[color:var(--md-text)] text-base font-semibold group-hover:text-[color:var(--md-primary)] transition-colors w-40">
+                                    <p className="mt-3 w-28 text-center text-sm font-semibold text-[color:var(--md-text)] transition-colors group-hover:text-[color:var(--md-primary)] sm:mt-4 sm:w-40 sm:text-base">
                                         {ad.title}
                                     </p>
                                 )}
@@ -94,6 +98,12 @@ export default function AdCircleGrid({ advertisements = [] }) {
                         )}
                     </div>
                 ))}
+            </div>
+            <div className="mt-6 flex justify-center px-2">
+                <SupportWhatsAppButton
+                    message="Hello Pavona admin, I have a question about an advertisement I saw on the website."
+                    showPhone
+                />
             </div>
         </div>
     );

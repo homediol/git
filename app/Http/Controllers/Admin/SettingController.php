@@ -26,7 +26,7 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'cover_background' => 'nullable|image|max:5120',
+            'cover_background' => 'nullable|image|max:20480',
             'header_image' => 'nullable|image|max:512000',
             'header_color' => 'nullable|string',
             'background_image' => 'nullable|image|max:512000',

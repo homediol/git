@@ -18,27 +18,29 @@ function MoonIcon() {
 }
 
 export default function ThemePickerButton({ compact = false, className = '' }) {
-    const { theme, openThemePicker } = useTheme();
+    const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
+    const nextThemeLabel = isDark ? 'Light Mode' : 'Dark Mode';
+    const nextThemeIsDark = !isDark;
 
     return (
         <button
             type="button"
-            onClick={openThemePicker}
+            onClick={toggleTheme}
             className={`inline-flex items-center justify-center gap-2 rounded-xl border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] px-3.5 py-2.5 text-sm font-semibold text-[color:var(--md-text)] shadow-sm transition hover:bg-[color:var(--md-surface-alt)] ${className}`}
-            aria-label="Open theme selector"
-            title="Change theme"
+            aria-label={`Switch to ${nextThemeLabel}`}
+            title={`Switch to ${nextThemeLabel}`}
         >
             <span
                 className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
-                    isDark ? 'bg-sky-500/12 text-sky-300' : 'bg-amber-500/12 text-amber-600'
+                    nextThemeIsDark ? 'bg-sky-500/12 text-sky-300' : 'bg-amber-500/12 text-amber-600'
                 }`}
             >
-                {isDark ? <MoonIcon /> : <SunIcon />}
+                {isDark ? <SunIcon /> : <MoonIcon />}
             </span>
             {!compact && (
                 <span className="whitespace-nowrap">
-                    {isDark ? 'Dark Mode' : 'Light Mode'}
+                    {nextThemeLabel}
                 </span>
             )}
         </button>

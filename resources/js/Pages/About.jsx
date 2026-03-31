@@ -21,8 +21,8 @@ export default function About({ auth, teamMembers = [], advertisements = [], set
 
             <div className="py-16 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="grid gap-6 md:grid-cols-2 mb-12">
-                        <div className="surface p-8">
+                    <div className="mb-12 grid gap-6 md:grid-cols-2">
+                        <div className="surface p-6 sm:p-8">
                             <h2 className="font-display text-2xl sm:text-3xl font-semibold text-[color:var(--md-text)] mb-4">
                                 {t('about.mission.title')}
                             </h2>
@@ -30,7 +30,7 @@ export default function About({ auth, teamMembers = [], advertisements = [], set
                                 {t('about.mission.body')}
                             </p>
                         </div>
-                        <div className="surface p-8">
+                        <div className="surface p-6 sm:p-8">
                             <h2 className="font-display text-2xl sm:text-3xl font-semibold text-[color:var(--md-text)] mb-4">
                                 {t('about.vision.title')}
                             </h2>
@@ -49,7 +49,7 @@ export default function About({ auth, teamMembers = [], advertisements = [], set
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6 mb-16">
+                    <div className="mb-16 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                         {teamMembers.map((member) => (
                             <div key={member.id} className="surface p-6 text-center transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
                                 {member.image && (

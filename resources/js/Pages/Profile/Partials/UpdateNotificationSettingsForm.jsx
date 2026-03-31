@@ -1,6 +1,7 @@
 import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { Transition } from '@headlessui/react';
 import { useEffect, useState } from 'react';
@@ -371,6 +372,18 @@ export default function UpdateNotificationSettingsForm({
                 </div>
 
                 <InputError className="mt-2" message={errors.in_app_notifications_enabled || errors.push_notifications_enabled} />
+
+                <div className="rounded-2xl border border-[color:var(--md-outline)] bg-[color:var(--md-surface-alt)] p-4">
+                    <p className="text-sm font-semibold text-[color:var(--md-text)]">
+                        {t('support.whatsapp.helper', 'Need help? Talk to the admin on WhatsApp right away.')}
+                    </p>
+                    <div className="mt-3">
+                        <SupportWhatsAppButton
+                            message="Hello Pavona admin, I need help with notification settings."
+                            showPhone
+                        />
+                    </div>
+                </div>
 
                 <div className="flex items-center gap-4">
                     <PrimaryButton disabled={processing}>

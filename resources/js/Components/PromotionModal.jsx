@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
+import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 
 const PROMO_COOLDOWN_DAYS = 5;
 
@@ -88,6 +89,10 @@ export default function PromotionModal() {
                                 {t('promo.cta_login')}
                             </Link>
                         )}
+                        <SupportWhatsAppButton
+                            message={`Hello Pavona admin, I have a question about this promotion: ${title}.`}
+                            label={t('support.whatsapp.short', 'WhatsApp admin')}
+                        />
                         <button
                             type="button"
                             onClick={dismiss}

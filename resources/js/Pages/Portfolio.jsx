@@ -51,7 +51,7 @@ export default function Portfolio({ auth, portfolios = [], categories = [], sele
                         ))}
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                         {portfolios.map((item) => (
                             <div key={item.id} className="surface overflow-hidden transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
                                 {item.image && (

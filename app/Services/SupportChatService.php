@@ -128,6 +128,13 @@ class SupportChatService
         });
     }
 
+    public function deleteThread(ChatThread $thread): void
+    {
+        DB::transaction(function () use ($thread) {
+            $thread->delete();
+        });
+    }
+
     public function markIncomingMessagesAsRead(ChatThread $thread, ?User $viewer = null, string $viewerType = 'user'): int
     {
         $query = $thread->messages()->whereNull('read_at');

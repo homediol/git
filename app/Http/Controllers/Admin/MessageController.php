@@ -99,4 +99,17 @@ class MessageController extends Controller
             'unread_count' => $chatService->unreadCountFor($request->user()),
         ]);
     }
+
+    public function destroyThread(Request $request, ChatThread $thread, SupportChatService $chatService): JsonResponse
+    {
+        $deletedThreadId = $thread->id;
+
+        $chatService->deleteThread($thread);
+
+        return response()->json([
+            'deleted_thread_id' => $deletedThreadId,
+            'threads' => $chatService->adminThreadSummaries(),
+            'unread_count' => $chatService->unreadCountFor($request->user()),
+        ]);
+    }
 }

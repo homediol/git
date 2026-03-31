@@ -8,6 +8,17 @@ class SiteSettings extends Model
 {
     protected $fillable = ['key', 'value'];
 
+    public const PUBLIC_KEYS = [
+        'header_bg',
+        'main_bg',
+        'footer_bg',
+        'whatsapp_url',
+        'instagram_url',
+        'facebook_url',
+        'x_url',
+        'contact_email',
+    ];
+
     public static function get($key, $default = null)
     {
         $setting = self::where('key', $key)->first();
@@ -17,5 +28,16 @@ class SiteSettings extends Model
     public static function set($key, $value)
     {
         return self::updateOrCreate(['key' => $key], ['value' => $value]);
+    }
+
+    public static function publicSettings(): array
+    {
+        $settings = [];
+
+        foreach (self::PUBLIC_KEYS as $key) {
+            $settings[$key] = self::get($key);
+        }
+
+        return $settings;
     }
 }

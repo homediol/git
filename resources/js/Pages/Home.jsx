@@ -51,8 +51,8 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                 <meta name="keywords" content={t('home.meta.keywords')} />
             </Head>
 
-            <section className="relative pt-16 pb-12 px-4">
-                <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+            <section className="relative px-4 pb-12 pt-12 sm:pt-16">
+                <div className="mx-auto grid max-w-7xl gap-10 items-center lg:grid-cols-2 lg:gap-12">
                     <div>
                         <span className="chip mb-4">{t('home.hero.badge')}</span>
                         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold leading-tight text-[color:var(--md-text)]">
@@ -62,14 +62,14 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                         <p className="mt-4 text-lg sm:text-xl text-slate-600 max-w-xl">
                             {t('home.hero.description')}
                         </p>
-                        <div className="mt-8 flex flex-wrap gap-4">
-                            <Link href={route('contact')} className="btn-primary">
+                        <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
+                            <Link href={route('contact')} className="btn-primary w-full sm:w-auto">
                                 {t('home.hero.cta_primary')}
                             </Link>
-                            <Link href={route('portfolio')} className="btn-secondary">
+                            <Link href={route('portfolio')} className="btn-secondary w-full sm:w-auto">
                                 {t('home.hero.cta_secondary')}
                             </Link>
-                            <Link href={route('services')} className="btn-success">
+                            <Link href={route('services')} className="btn-success w-full sm:w-auto">
                                 {t('home.hero.cta_success')}
                             </Link>
                         </div>
@@ -97,7 +97,7 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                                 videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                             />
                         )}
-                        <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs font-semibold text-slate-600">
+                        <div className="mt-6 grid grid-cols-1 gap-3 text-center text-xs font-semibold text-slate-600 sm:grid-cols-3">
                             <div className="surface-soft px-2 py-3">{t('home.hero.card.pill_one')}</div>
                             <div className="surface-soft px-2 py-3">{t('home.hero.card.pill_two')}</div>
                             <div className="surface-soft px-2 py-3">{t('home.hero.card.pill_three')}</div>
@@ -142,7 +142,7 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                             {t('home.services.view_all')}
                         </Link>
                     </div>
-                    <div className="grid gap-6 md:grid-cols-3">
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                         {services.slice(0, 6).map((service) => (
                             <Link
                                 key={service.id}
@@ -258,7 +258,7 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                                 {t('home.portfolio.view_all')}
                             </Link>
                         </div>
-                        <div className="grid gap-6 md:grid-cols-3">
+                        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                             {portfolios.slice(0, 3).map((item) => (
                                 <div key={item.id} className="surface overflow-hidden transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
                                     {item.image && (
@@ -295,7 +295,7 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                             {t('home.process.subtitle')}
                         </p>
                     </div>
-                    <div className="mt-10 grid gap-6 md:grid-cols-3">
+                    <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                         {processSteps.map((step, index) => (
                             <div key={step.title} className="surface p-6">
                                 <div className="w-10 h-10 rounded-xl bg-[color:var(--md-accent)]/20 text-[color:var(--md-text)] flex items-center justify-center font-semibold">
@@ -344,7 +344,7 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                                 {t('home.team.subtitle')}
                             </p>
                         </div>
-                        <div className="grid md:grid-cols-3 gap-6">
+                        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                             {teams.map((member) => (
                                 <div key={member.id} className="surface p-6 text-center transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
                                     {member.image && (
