@@ -4,6 +4,11 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="application-name" content="{{ config('app.name', 'Pavona Studios') }}">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'Pavona Studios') }}">
+        <meta name="mobile-web-app-capable" content="yes">
         
         <!-- SEO Meta Tags -->
         <meta name="description" content="Pavona Studios - Professional graphic design, branding, and premium printing services. Logo design, vehicle wraps, banners, business cards, and more.">
@@ -27,7 +32,10 @@
         
         <!-- Favicons -->
         <link rel="icon" type="image/svg+xml" href="{{ asset('favicons/favicon.svg') }}">
-        <link rel="apple-touch-icon" href="{{ asset('favicons/favicon.svg') }}">
+        <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('pwa/icon-192.png') }}">
+        <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('pwa/icon-512.png') }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('pwa/apple-touch-icon.png') }}">
+        <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
         
         <!-- Theme Color -->
         <meta name="theme-color" content="#F8F9FA">

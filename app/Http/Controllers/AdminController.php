@@ -101,11 +101,18 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'description' => 'required|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'image' => 'nullable|file|max:512000',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
+        $validated = $this->normalizeServiceTranslations($validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'services');
@@ -123,11 +130,18 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'description' => 'required|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'image' => 'nullable|file|max:512000',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
+        $validated = $this->normalizeServiceTranslations($validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'services');
@@ -164,11 +178,18 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'image' => 'nullable|file|max:512000',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
+        $validated = $this->normalizeServiceTranslations($validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'sub-services');
@@ -190,11 +211,18 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'image' => 'nullable|file|max:512000',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
+        $validated = $this->normalizeServiceTranslations($validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'sub-services');
@@ -217,6 +245,24 @@ class AdminController extends Controller
 
         $subService->delete();
         return back()->with('success', 'Sub-service deleted!');
+    }
+
+    private function normalizeServiceTranslations(array $validated): array
+    {
+        if (!Schema::hasColumn('services', 'title_rw')) {
+            return $validated;
+        }
+
+        $validated['title_rw'] = filled($validated['title_rw'] ?? null) ? $validated['title_rw'] : null;
+        $validated['title_en'] = filled($validated['title_en'] ?? null) ? $validated['title_en'] : $validated['title'];
+        $validated['title_fr'] = filled($validated['title_fr'] ?? null) ? $validated['title_fr'] : null;
+        $validated['description_rw'] = filled($validated['description_rw'] ?? null) ? $validated['description_rw'] : null;
+        $validated['description_en'] = filled($validated['description_en'] ?? null)
+            ? $validated['description_en']
+            : ($validated['description'] ?? null);
+        $validated['description_fr'] = filled($validated['description_fr'] ?? null) ? $validated['description_fr'] : null;
+
+        return $validated;
     }
 
     // ==================== PORTFOLIOS ====================

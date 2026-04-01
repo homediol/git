@@ -1,12 +1,11 @@
 import axios from 'axios';
+import { registerAppServiceWorker } from '@/lib/pwaInstall';
 
 const promptDismissKey = 'pavona_push_prompt_dismissed';
 const promptStateEventName = 'pavona:push-prompt-state-change';
 export const PUSH_PROMPT_REMINDER_MS = 120000;
 
 let messagingInstance = null;
-let serviceWorkerRegistrationPromise = null;
-
 export function getPushPromptDismissed() {
     if (typeof window === 'undefined') {
         return false;
@@ -98,11 +97,7 @@ export async function registerPushServiceWorker() {
         return null;
     }
 
-    if (!serviceWorkerRegistrationPromise) {
-        serviceWorkerRegistrationPromise = navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    }
-
-    return serviceWorkerRegistrationPromise;
+    return registerAppServiceWorker();
 }
 
 async function getFirebaseMessaging() {

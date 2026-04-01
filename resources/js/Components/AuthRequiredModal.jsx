@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { useLocale } from '@/Providers/LocaleProvider';
+import GoogleIcon from '@/Components/GoogleIcon';
 
 export default function AuthRequiredModal({ open, onClose }) {
     const { t } = useLocale();
@@ -54,7 +55,9 @@ export default function AuthRequiredModal({ open, onClose }) {
                         className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-[color:var(--md-outline)] bg-white py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                         onClick={onClose}
                     >
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs">G</span>
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
+                            <GoogleIcon className="h-5 w-5" />
+                        </span>
                         {t('auth.required.google')}
                     </Link>
                     <button

@@ -3,6 +3,11 @@ import { Link, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
+import {
+    getPwaInstallState,
+    promptPwaInstall,
+    subscribeToPwaInstallState,
+} from '@/lib/pwaInstall';
 import MediaPreview from '@/Components/MediaPreview';
 import SupportWhatsAppButton from '@/Components/SupportWhatsAppButton';
 
@@ -36,6 +41,9 @@ export default function NotificationBell() {
     const [open, setOpen] = useState(false);
     const [items, setItems] = useState(isGuest ? guestItems : initialNotifications?.items ?? []);
     const [unreadCount, setUnreadCount] = useState(isGuest ? guestItems.length : initialNotifications?.unread_count ?? 0);
+    const [installState, setInstallState] = useState(() => getPwaInstallState());
+    const [installingApp, setInstallingApp] = useState(false);
+    const [installFeedback, setInstallFeedback] = useState('');
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -95,6 +103,18 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        setInstallState(getPwaInstallState());
+
+        return subscribeToPwaInstallState((nextState) => {
+            setInstallState(nextState);
+
+            if (nextState.available) {
+                setInstallFeedback('');
+            }
+        });
+    }, []);
+
     const markRead = async (id) => {
         if (isGuest) return;
         try {
@@ -133,6 +153,53 @@ export default function NotificationBell() {
         return new Date(value).toLocaleString(locale || 'rw');
     };
 
+    const handleInstallApp = async () => {
+        setInstallingApp(true);
+        setInstallFeedback('');
+
+        try {
+            const result = await promptPwaInstall();
+
+            if (result.outcome === 'unavailable') {
+                setInstallFeedback(
+                    t(
+                        'notifications.install_unavailable',
+                        'Install option is not ready yet in this browser.',
+                    ),
+                );
+            } else if (result.outcome !== 'accepted') {
+                setInstallFeedback(
+                    t(
+                        'notifications.install_dismissed',
+                        'Install prompt was closed. It will return when the browser allows it again.',
+                    ),
+                );
+            }
+        } catch (error) {
+            setInstallFeedback(
+                t(
+                    'notifications.install_error',
+                    'Install failed for now. Please try again in a moment.',
+                ),
+            );
+        } finally {
+            setInstallingApp(false);
+        }
+    };
+
+    const showInstallCard = installState.available && !installState.installed;
+    const displayItems = showInstallCard
+        ? [
+            {
+                id: 'pwa-install',
+                kind: 'install_app',
+                created_at: installState.availableAt || new Date().toISOString(),
+            },
+            ...items,
+        ]
+        : items;
+    const displayUnreadCount = unreadCount + (showInstallCard ? 1 : 0);
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button
@@ -145,9 +212,9 @@ export default function NotificationBell() {
                 <svg className="w-5 h-5 text-[color:var(--md-text)]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4a2 2 0 01-.6-1.4V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0m6 0H9" />
                 </svg>
-                {unreadCount > 0 && (
+                {displayUnreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-[color:var(--md-danger)] text-xs font-bold text-white flex items-center justify-center shadow">
-                        {unreadCount}
+                        {displayUnreadCount}
                     </span>
                 )}
             </button>
@@ -180,13 +247,58 @@ export default function NotificationBell() {
                         </div>
                     </div>
 
-                    {items.length === 0 ? (
+                    {displayItems.length === 0 ? (
                         <p className="text-sm text-slate-500">
                             {isGuest ? t('notifications.none_guest') : t('notifications.none_user')}
                         </p>
                     ) : (
                         <div className="notification-dropdown-list space-y-3 max-h-[min(65vh,24rem)] overflow-y-auto pr-1">
-                            {items.map((item) => {
+                            {displayItems.map((item) => {
+                                if (item.kind === 'install_app') {
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className="rounded-xl border border-[rgba(255,109,0,0.22)] bg-[linear-gradient(145deg,rgba(255,122,24,0.14),rgba(66,133,244,0.12))] p-4 shadow-sm"
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="rounded-lg bg-[color:var(--md-primary)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white">
+                                                    {t('notifications.install_ready', 'Ready to install')}
+                                                </div>
+                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--md-secondary)]">
+                                                    {t('notifications.new')}
+                                                </span>
+                                            </div>
+                                            <h4 className="mt-3 text-sm font-semibold text-[color:var(--md-text)]">
+                                                {t('notifications.install_title', 'Install Pavona as an app')}
+                                            </h4>
+                                            <p className="mt-2 text-xs leading-6 text-[color:var(--md-muted)]">
+                                                {t(
+                                                    'notifications.install_body',
+                                                    'Keep Pavona on your phone or desktop for faster opening and an app-like experience.',
+                                                )}
+                                            </p>
+                                            {installFeedback && (
+                                                <p className="mt-2 text-xs text-[color:var(--md-secondary)]">
+                                                    {installFeedback}
+                                                </p>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={handleInstallApp}
+                                                disabled={installingApp}
+                                                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--md-primary)] px-3 py-2.5 text-xs font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                                            >
+                                                {installingApp
+                                                    ? t('notifications.install_opening', 'Opening install...')
+                                                    : t('notifications.install_cta', 'Install app')}
+                                            </button>
+                                            <p className="mt-2 text-[10px] text-slate-400">
+                                                {formatDate(item.created_at)}
+                                            </p>
+                                        </div>
+                                    );
+                                }
+
                                 if (item.kind === 'guest_prompt') {
                                     return (
                                         <div key={item.id} className="rounded-xl border border-[color:var(--md-outline)] bg-[color:var(--md-surface)] p-4 shadow-sm">

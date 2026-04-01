@@ -8,20 +8,51 @@ import InputError from '@/Components/InputError';
 import MediaPreview from '@/Components/MediaPreview';
 import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
+const emptyForm = {
+    title: '',
+    title_rw: '',
+    title_en: '',
+    title_fr: '',
+    description: '',
+    description_rw: '',
+    description_en: '',
+    description_fr: '',
+    image: '',
+};
+
+const toFormData = (subService = {}) => ({
+    title: subService.title || '',
+    title_rw: subService.title_rw || '',
+    title_en: subService.title_en || subService.title || '',
+    title_fr: subService.title_fr || '',
+    description: subService.description || '',
+    description_rw: subService.description_rw || '',
+    description_en: subService.description_en || subService.description || '',
+    description_fr: subService.description_fr || '',
+    image: subService.image || '',
+});
+
 export default function SubServices({ service, subServices = [] }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm({
-        title: '',
-        description: '',
-        image: '',
-    });
+    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm(emptyForm);
+
+    const resetForm = () => {
+        reset();
+        setEditing(null);
+    };
 
     const submit = (e) => {
         e.preventDefault();
         transform((currentData) => {
             const payload = {
                 title: currentData.title || '',
+                title_rw: currentData.title_rw || '',
+                title_en: currentData.title_en || '',
+                title_fr: currentData.title_fr || '',
                 description: currentData.description || '',
+                description_rw: currentData.description_rw || '',
+                description_en: currentData.description_en || '',
+                description_fr: currentData.description_fr || '',
             };
 
             if (currentData.image instanceof File) {
@@ -41,21 +72,14 @@ export default function SubServices({ service, subServices = [] }) {
                 : route('admin.services.subservices.store', service.id),
             {
                 forceFormData: true,
-                onSuccess: () => {
-                    reset();
-                    setEditing(null);
-                },
+                onSuccess: () => resetForm(),
                 onFinish: () => transform((currentData) => currentData),
             }
         );
     };
 
     const edit = (subService) => {
-        setData({
-            title: subService.title || '',
-            description: subService.description || '',
-            image: subService.image || '',
-        });
+        setData(toFormData(subService));
         setEditing(subService.id);
     };
 
@@ -100,27 +124,90 @@ export default function SubServices({ service, subServices = [] }) {
                     <div className="glass rounded-2xl p-6 mb-6">
                         <h3 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Edit' : 'Add'} Sub-service</h3>
                         <form onSubmit={submit}>
-                            <div className="mb-4">
-                                <InputLabel value="Title" />
-                                <TextInput
-                                    value={data.title}
-                                    onChange={(e) => setData('title', e.target.value)}
-                                    className="mt-1 block w-full"
-                                    required
-                                />
-                                <InputError message={errors.title} className="mt-2" />
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <InputLabel value="Default Title" />
+                                    <TextInput
+                                        value={data.title}
+                                        onChange={(e) => setData('title', e.target.value)}
+                                        className="mt-1 block w-full"
+                                        required
+                                    />
+                                    <InputError message={errors.title} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="Kinyarwanda Title" />
+                                    <TextInput
+                                        value={data.title_rw}
+                                        onChange={(e) => setData('title_rw', e.target.value)}
+                                        className="mt-1 block w-full"
+                                    />
+                                    <InputError message={errors.title_rw} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="English Title" />
+                                    <TextInput
+                                        value={data.title_en}
+                                        onChange={(e) => setData('title_en', e.target.value)}
+                                        className="mt-1 block w-full"
+                                    />
+                                    <InputError message={errors.title_en} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="French Title" />
+                                    <TextInput
+                                        value={data.title_fr}
+                                        onChange={(e) => setData('title_fr', e.target.value)}
+                                        className="mt-1 block w-full"
+                                    />
+                                    <InputError message={errors.title_fr} className="mt-2" />
+                                </div>
                             </div>
-                            <div className="mb-4">
-                                <InputLabel value="Description" />
-                                <textarea
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm"
-                                    rows="3"
-                                />
-                                <InputError message={errors.description} className="mt-2" />
+
+                            <div className="mt-4 grid gap-4">
+                                <div>
+                                    <InputLabel value="Default Description" />
+                                    <textarea
+                                        value={data.description}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                        className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm"
+                                        rows="3"
+                                    />
+                                    <InputError message={errors.description} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="Kinyarwanda Description" />
+                                    <textarea
+                                        value={data.description_rw}
+                                        onChange={(e) => setData('description_rw', e.target.value)}
+                                        className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm"
+                                        rows="3"
+                                    />
+                                    <InputError message={errors.description_rw} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="English Description" />
+                                    <textarea
+                                        value={data.description_en}
+                                        onChange={(e) => setData('description_en', e.target.value)}
+                                        className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm"
+                                        rows="3"
+                                    />
+                                    <InputError message={errors.description_en} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="French Description" />
+                                    <textarea
+                                        value={data.description_fr}
+                                        onChange={(e) => setData('description_fr', e.target.value)}
+                                        className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm"
+                                        rows="3"
+                                    />
+                                    <InputError message={errors.description_fr} className="mt-2" />
+                                </div>
                             </div>
-                            <div className="mb-4">
+
+                            <div className="mb-4 mt-4">
                                 <InputLabel value="Media" />
                                 <input
                                     type="file"
@@ -139,12 +226,13 @@ export default function SubServices({ service, subServices = [] }) {
                                     />
                                 )}
                             </div>
+
                             <div className="flex gap-2">
                                 <PrimaryButton>{editing ? 'Update' : 'Create'}</PrimaryButton>
                                 {editing && (
                                     <button
                                         type="button"
-                                        onClick={() => { reset(); setEditing(null); }}
+                                        onClick={resetForm}
                                         className="px-4 py-2 bg-gray-300 rounded-xl"
                                     >
                                         Cancel
@@ -167,8 +255,11 @@ export default function SubServices({ service, subServices = [] }) {
                                 )}
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{subService.title}</h3>
                                 {subService.description && (
-                                    <p className="text-gray-600 mb-4">{subService.description}</p>
+                                    <p className="text-gray-600 mb-2">{subService.description}</p>
                                 )}
+                                <p className="text-xs text-slate-500 mb-4">
+                                    RW: {subService.title_rw || 'Not set'} | EN: {subService.title_en || subService.title || 'Not set'} | FR: {subService.title_fr || 'Not set'}
+                                </p>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => edit(subService)}

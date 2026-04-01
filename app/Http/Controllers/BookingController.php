@@ -172,12 +172,19 @@ class BookingController extends Controller
     {
         if (Schema::hasColumn('services', 'service_key')) {
             $requiredKeys = $this->bookingServiceKeys();
-            $existingKeys = Service::whereNull('parent_service_id')
+            $services = Service::whereNull('parent_service_id')
                 ->whereIn('service_key', $requiredKeys)
-                ->pluck('service_key')
-                ->all();
+                ->get();
 
-            if (count($existingKeys) !== count($requiredKeys)) {
+            if ($services->count() !== count($requiredKeys)) {
+                (new ServiceCatalogSeeder())->run();
+                return;
+            }
+
+            if (
+                Schema::hasColumn('services', 'title_rw')
+                && $services->contains(fn (Service $service) => empty($service->title_rw) || empty($service->description_rw))
+            ) {
                 (new ServiceCatalogSeeder())->run();
             }
 

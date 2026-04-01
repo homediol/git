@@ -55,6 +55,11 @@ class HomeController extends Controller
 
             if (!empty($missing)) {
                 (new ServiceCatalogSeeder())->run();
+                return;
+            }
+
+            if ($this->defaultCatalogNeedsRefresh()) {
+                (new ServiceCatalogSeeder())->run();
             }
 
             return;
@@ -70,6 +75,48 @@ class HomeController extends Controller
         if (!empty($missing)) {
             (new ServiceCatalogSeeder())->run();
         }
+    }
+
+    private function defaultCatalogNeedsRefresh(): bool
+    {
+        $featuredServices = Service::whereNull('parent_service_id')
+            ->whereIn('service_key', $this->featuredServiceKeys())
+            ->get();
+
+        if ($featuredServices->count() !== count($this->featuredServiceKeys())) {
+            return true;
+        }
+
+        if (Schema::hasColumn('services', 'title_rw')) {
+            $missingFeaturedTranslations = $featuredServices->contains(function (Service $service) {
+                return empty($service->title_rw) || empty($service->description_rw);
+            });
+
+            if ($missingFeaturedTranslations) {
+                return true;
+            }
+        }
+
+        $graphicsService = $featuredServices->firstWhere('service_key', 'graphics-printing');
+
+        if (!$graphicsService) {
+            return true;
+        }
+
+        if ($graphicsService->subServices()->count() < 13) {
+            return true;
+        }
+
+        if (!Schema::hasColumn('services', 'title_rw')) {
+            return false;
+        }
+
+        return $graphicsService->subServices()
+            ->where(function ($query) {
+                $query->whereNull('title_rw')
+                    ->orWhereNull('description_rw');
+            })
+            ->exists();
     }
 
     private function getFeaturedServices()

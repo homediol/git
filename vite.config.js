@@ -11,6 +11,8 @@ export default defineConfig({
         react(),
     ],
     server: {
+        host: true,
+        allowedHosts: 'all',
         proxy: {
             '^/(?!@vite|@react-refresh|@id|@fs|resources|build|node_modules|favicon\\.ico)': {
                 target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000',

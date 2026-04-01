@@ -6,7 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Service extends Model
 {
-    protected $fillable = ['title', 'description', 'image', 'parent_service_id', 'service_key'];
+    protected $fillable = [
+        'title',
+        'title_rw',
+        'title_en',
+        'title_fr',
+        'description',
+        'description_rw',
+        'description_en',
+        'description_fr',
+        'image',
+        'parent_service_id',
+        'service_key',
+    ];
 
     public function parentService()
     {

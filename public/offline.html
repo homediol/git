@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="rw">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#07111F">
+        <title>Pavona Studios</title>
+        <style>
+            :root {
+                color-scheme: light;
+                --bg: #f8fafc;
+                --card: rgba(255, 255, 255, 0.92);
+                --text: #0f172a;
+                --muted: #475569;
+                --primary: #ff6d00;
+                --secondary: #4285f4;
+                --border: rgba(15, 23, 42, 0.08);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                padding: 24px;
+                font-family: Manrope, sans-serif;
+                background:
+                    radial-gradient(circle at top right, rgba(255, 109, 0, 0.16), transparent 32%),
+                    radial-gradient(circle at bottom left, rgba(66, 133, 244, 0.18), transparent 28%),
+                    var(--bg);
+                color: var(--text);
+            }
+
+            main {
+                width: min(100%, 32rem);
+                border: 1px solid var(--border);
+                border-radius: 28px;
+                padding: 28px;
+                background: var(--card);
+                box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+                backdrop-filter: blur(18px);
+            }
+
+            img {
+                width: 72px;
+                height: 72px;
+                border-radius: 22px;
+                display: block;
+            }
+
+            h1 {
+                margin: 18px 0 10px;
+                font-size: 1.6rem;
+                line-height: 1.2;
+            }
+
+            p {
+                margin: 0;
+                line-height: 1.7;
+                color: var(--muted);
+            }
+
+            .actions {
+                margin-top: 22px;
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            a,
+            button {
+                border: 0;
+                border-radius: 999px;
+                padding: 12px 18px;
+                font: inherit;
+                font-weight: 700;
+                cursor: pointer;
+                text-decoration: none;
+            }
+
+            a {
+                background: linear-gradient(135deg, var(--primary), #ea4335);
+                color: #fff;
+            }
+
+            button {
+                background: rgba(66, 133, 244, 0.1);
+                color: var(--secondary);
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <img src="/pwa/icon-192.png" alt="Pavona Studios" />
+            <h1>Nta internet ihari ubu</h1>
+            <p>
+                Pavona Studios ntibashije gufunguka neza muri aka kanya kubera ko internet yabuze.
+                Nugaruka online, refresh irahita isubiza app ku murongo.
+            </p>
+            <div class="actions">
+                <a href="/">Subira ku rubuga</a>
+                <button type="button" onclick="window.location.reload()">Ongera ugerageze</button>
+            </div>
+        </main>
+    </body>
+</html>

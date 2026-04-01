@@ -9,20 +9,51 @@ import MediaPreview from '@/Components/MediaPreview';
 import AdminMediaHint from '@/Components/AdminMediaHint';
 import { ADMIN_IMAGE_UPLOAD_LIMIT_MB, getAdminImageUploadError } from '@/lib/adminUploadLimits';
 
+const emptyForm = {
+    title: '',
+    title_rw: '',
+    title_en: '',
+    title_fr: '',
+    description: '',
+    description_rw: '',
+    description_en: '',
+    description_fr: '',
+    image: '',
+};
+
+const toFormData = (service = {}) => ({
+    title: service.title || '',
+    title_rw: service.title_rw || '',
+    title_en: service.title_en || service.title || '',
+    title_fr: service.title_fr || '',
+    description: service.description || '',
+    description_rw: service.description_rw || '',
+    description_en: service.description_en || service.description || '',
+    description_fr: service.description_fr || '',
+    image: service.image || '',
+});
+
 export default function ServicesIndex({ services }) {
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm({
-        title: '',
-        description: '',
-        image: '',
-    });
+    const { data, setData, post, delete: destroy, reset, errors, setError, clearErrors, transform } = useForm(emptyForm);
+
+    const resetForm = () => {
+        reset();
+        setEditing(null);
+    };
 
     const submit = (e) => {
         e.preventDefault();
         transform((currentData) => {
             const payload = {
-                title: currentData.title,
-                description: currentData.description,
+                title: currentData.title || '',
+                title_rw: currentData.title_rw || '',
+                title_en: currentData.title_en || '',
+                title_fr: currentData.title_fr || '',
+                description: currentData.description || '',
+                description_rw: currentData.description_rw || '',
+                description_en: currentData.description_en || '',
+                description_fr: currentData.description_fr || '',
             };
 
             if (currentData.image instanceof File) {
@@ -38,16 +69,13 @@ export default function ServicesIndex({ services }) {
 
         post(editing ? route('admin.services.update', editing) : route('admin.services.store'), {
             forceFormData: true,
-            onSuccess: () => {
-                reset();
-                setEditing(null);
-            },
+            onSuccess: () => resetForm(),
             onFinish: () => transform((currentData) => currentData),
         });
     };
 
     const edit = (service) => {
-        setData(service);
+        setData(toFormData(service));
         setEditing(service.id);
     };
 
@@ -79,17 +107,53 @@ export default function ServicesIndex({ services }) {
                     <div className="glass rounded-2xl p-6 mb-6">
                         <h3 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Edit' : 'Add'} Service</h3>
                         <form onSubmit={submit}>
-                            <div className="mb-4">
-                                <InputLabel value="Title" />
-                                <TextInput value={data.title} onChange={(e) => setData('title', e.target.value)} className="mt-1 block w-full" required />
-                                <InputError message={errors.title} className="mt-2" />
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <InputLabel value="Default Title" />
+                                    <TextInput value={data.title} onChange={(e) => setData('title', e.target.value)} className="mt-1 block w-full" required />
+                                    <InputError message={errors.title} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="Kinyarwanda Title" />
+                                    <TextInput value={data.title_rw} onChange={(e) => setData('title_rw', e.target.value)} className="mt-1 block w-full" />
+                                    <InputError message={errors.title_rw} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="English Title" />
+                                    <TextInput value={data.title_en} onChange={(e) => setData('title_en', e.target.value)} className="mt-1 block w-full" />
+                                    <InputError message={errors.title_en} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="French Title" />
+                                    <TextInput value={data.title_fr} onChange={(e) => setData('title_fr', e.target.value)} className="mt-1 block w-full" />
+                                    <InputError message={errors.title_fr} className="mt-2" />
+                                </div>
                             </div>
-                            <div className="mb-4">
-                                <InputLabel value="Description" />
-                                <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" required />
-                                <InputError message={errors.description} className="mt-2" />
+
+                            <div className="mt-4 grid gap-4">
+                                <div>
+                                    <InputLabel value="Default Description" />
+                                    <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" required />
+                                    <InputError message={errors.description} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="Kinyarwanda Description" />
+                                    <textarea value={data.description_rw} onChange={(e) => setData('description_rw', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
+                                    <InputError message={errors.description_rw} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="English Description" />
+                                    <textarea value={data.description_en} onChange={(e) => setData('description_en', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
+                                    <InputError message={errors.description_en} className="mt-2" />
+                                </div>
+                                <div>
+                                    <InputLabel value="French Description" />
+                                    <textarea value={data.description_fr} onChange={(e) => setData('description_fr', e.target.value)} className="mt-1 block w-full rounded-lg border-white/20 bg-white/50 backdrop-blur-sm" rows="3" />
+                                    <InputError message={errors.description_fr} className="mt-2" />
+                                </div>
                             </div>
-                            <div className="mb-4">
+
+                            <div className="mb-4 mt-4">
                                 <InputLabel value="Media" />
                                 <input type="file" accept="image/*,video/*" onChange={handleMediaChange} className="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700" />
                                 <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
@@ -109,9 +173,14 @@ export default function ServicesIndex({ services }) {
                                     />
                                 )}
                             </div>
+
                             <div className="flex gap-2">
                                 <PrimaryButton>{editing ? 'Update' : 'Create'}</PrimaryButton>
-                                {editing && <button type="button" onClick={() => { reset(); setEditing(null); }} className="px-4 py-2 bg-gray-300 rounded-xl">Cancel</button>}
+                                {editing && (
+                                    <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-300 rounded-xl">
+                                        Cancel
+                                    </button>
+                                )}
                             </div>
                         </form>
                     </div>
@@ -128,7 +197,10 @@ export default function ServicesIndex({ services }) {
                                     />
                                 )}
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{service.title}</h3>
-                                <p className="text-gray-600 mb-4">{service.description}</p>
+                                <p className="text-gray-600 mb-2">{service.description}</p>
+                                <p className="text-xs text-slate-500 mb-4">
+                                    RW: {service.title_rw || 'Not set'} | EN: {service.title_en || service.title || 'Not set'} | FR: {service.title_fr || 'Not set'}
+                                </p>
                                 <div className="flex gap-2">
                                     <button onClick={() => edit(service)} className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm">Edit</button>
                                     <button onClick={() => deleteService(service.id)} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">Delete</button>
