@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.phpunit.result.cache
+node_modules
+vendor
+public/hot
+public/storage
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/testing
+storage/framework/views
+npm-debug.log
+yarn-error.log
+docker-compose.yml
