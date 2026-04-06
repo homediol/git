@@ -19,7 +19,7 @@ class PromotionController extends Controller
     {
         $campaigns = PromotionCampaign::with([
             'creator',
-            'referenceReward',
+            'referenceReward.service',
             'recipients.user.bookings',
         ])
             ->latest()
@@ -45,10 +45,14 @@ class PromotionController extends Controller
                     'audience_type' => $campaign->audience_type,
                     'user_age_segment' => $campaign->user_age_segment,
                     'new_user_window_days' => $campaign->new_user_window_days,
+                    'booking_status_filter' => $campaign->booking_status_filter,
                     'reward_filter' => $campaign->reward_filter,
+                    'offer_type' => $campaign->offer_type,
                     'smart_reward_mode' => $campaign->smart_reward_mode,
                     'discount_percent' => $campaign->discount_percent,
                     'discount_code' => $campaign->discount_code,
+                    'original_price_rwf' => $campaign->original_price_rwf,
+                    'discounted_price_rwf' => $campaign->discounted_price_rwf,
                     'send_in_app' => $campaign->send_in_app,
                     'send_email' => $campaign->send_email,
                     'send_sms' => $campaign->send_sms,
@@ -69,8 +73,9 @@ class PromotionController extends Controller
                         'in_app' => $recipients->whereNotNull('in_app_sent_at')->count(),
                         'email' => $recipients->whereNotNull('email_sent_at')->count(),
                         'sms' => $recipients->whereNotNull('sms_sent_at')->count(),
+                        'free_rewards' => $recipients->where('delivery_strategy', 'free_reward')->count(),
                         'reminders' => $recipients->where('delivery_strategy', 'reward_reminder')->count(),
-                        'discounts' => $recipients->where('delivery_strategy', 'discount')->count(),
+                        'discounts' => $recipients->whereIn('delivery_strategy', ['discount', 'discount_rewind'])->count(),
                         'conversions' => $recipients->filter(function ($recipient) use ($launchTime) {
                             return $recipient->user?->bookings?->contains(function ($booking) use ($launchTime) {
                                 return $booking->created_at && $launchTime && $booking->created_at->gt($launchTime);
@@ -87,6 +92,7 @@ class PromotionController extends Controller
                             'sms_sent_at' => $recipient->sms_sent_at,
                             'opened_at' => $recipient->opened_at,
                             'channel_results' => $recipient->channel_results ?? [],
+                            'meta' => $recipient->meta ?? [],
                             'created_at' => $recipient->created_at,
                             'user' => $recipient->user ? [
                                 'id' => $recipient->user->id,
@@ -102,8 +108,16 @@ class PromotionController extends Controller
         return Inertia::render('Admin/Promotions/Index', [
             'promotions' => Promotion::latest()->get(),
             'campaigns' => $campaigns,
-            'serviceOptions' => Service::orderBy('title')->get(['id', 'title']),
-            'rewardOptions' => Reward::orderBy('name')->get(['id', 'name', 'name_rw', 'name_en', 'name_fr']),
+            'serviceOptions' => Service::query()
+                ->whereNull('parent_service_id')
+                ->get(['id', 'title', 'service_key'])
+                ->sortBy(fn (Service $service) => $this->serviceCategoryOrder($service))
+                ->values()
+                ->map(fn (Service $service) => [
+                    'id' => $service->id,
+                    'title' => $service->title,
+                ]),
+            'rewardOptions' => Reward::with('service')->orderBy('name')->get(['id', 'name', 'name_rw', 'name_en', 'name_fr', 'service_id']),
             'userOptions' => User::query()
                 ->where(function ($query) {
                     $query->whereNull('role')->orWhere('role', '!=', 'admin');
@@ -124,6 +138,12 @@ class PromotionController extends Controller
                     ->where(function ($query) {
                         $query->whereNull('role')->orWhere('role', '!=', 'admin');
                     })
+                    ->count(),
+                'bookedUsers' => User::query()
+                    ->where(function ($query) {
+                        $query->whereNull('role')->orWhere('role', '!=', 'admin');
+                    })
+                    ->whereHas('bookings')
                     ->count(),
                 'newUsers30d' => User::query()
                     ->where(function ($query) {
@@ -254,6 +274,22 @@ class PromotionController extends Controller
         ]);
 
         return back()->with('success', 'Promotion updated.');
+    }
+
+    private function serviceCategoryOrder(Service $service): int
+    {
+        $order = array_flip([
+            'photography-videography',
+            'graphics-printing',
+            'make-up',
+            'other-services',
+        ]);
+
+        if (!empty($service->service_key) && array_key_exists($service->service_key, $order)) {
+            return $order[$service->service_key];
+        }
+
+        return 999 + (int) $service->id;
     }
 
     private function ensureImageUpload(Request $request, string $field): void

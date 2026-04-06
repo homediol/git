@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use App\Services\RewardService;
+use App\Services\WelcomeOfferService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,6 +52,7 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         app(RewardService::class)->assignWelcomeRewards($user);
+        app(WelcomeOfferService::class)->notifyDiscount($user);
 
         return redirect(route('dashboard', absolute: false))->with('show_promo', true);
     }

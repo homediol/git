@@ -27,7 +27,7 @@ class ServiceCatalogSeeder extends Seeder
             $service = null;
 
             if ($hasServiceKey && $serviceKey) {
-                $service = Service::whereNull('parent_service_id')
+                $service = Service::query()
                     ->where('service_key', $serviceKey)
                     ->first();
             }
@@ -52,9 +52,15 @@ class ServiceCatalogSeeder extends Seeder
             } else {
                 $updates = [];
 
+                if ($service->parent_service_id !== null) {
+                    $updates['parent_service_id'] = null;
+                }
+
                 if ($hasServiceKey && $serviceKey && $service->service_key !== $serviceKey) {
                     $updates['service_key'] = $serviceKey;
                 }
+
+                $updates = array_merge($updates, $this->canonicalTitleUpdates($service, $serviceData, $hasTranslations));
 
                 if (empty($service->description) && !empty($serviceData['description'])) {
                     $updates['description'] = $serviceData['description'];
@@ -91,6 +97,8 @@ class ServiceCatalogSeeder extends Seeder
                 }
             }
         }
+
+        $this->removeDeprecatedCatalogEntries($hasServiceKey);
     }
 
     private function hasServiceTranslations(): bool
@@ -150,6 +158,33 @@ class ServiceCatalogSeeder extends Seeder
         return $updates;
     }
 
+    private function canonicalTitleUpdates(Service $service, array $data, bool $hasTranslations): array
+    {
+        $updates = [];
+
+        if (($data['title'] ?? null) && $service->title !== $data['title']) {
+            $updates['title'] = $data['title'];
+        }
+
+        if (!$hasTranslations) {
+            return $updates;
+        }
+
+        $titleTranslations = [
+            'title_rw' => $data['title_rw'] ?? null,
+            'title_en' => $data['title_en'] ?? ($data['title'] ?? null),
+            'title_fr' => $data['title_fr'] ?? null,
+        ];
+
+        foreach ($titleTranslations as $field => $value) {
+            if (($service->{$field} ?? null) !== $value) {
+                $updates[$field] = $value;
+            }
+        }
+
+        return $updates;
+    }
+
     private function shouldReplaceImage(?string $image): bool
     {
         if (empty($image)) {
@@ -161,37 +196,60 @@ class ServiceCatalogSeeder extends Seeder
 
     private function syncSubService(Service $service, array $subServiceData, bool $hasTranslations): Service
     {
+        $hasServiceKey = Schema::hasColumn('services', 'service_key');
         $candidateTitles = array_values(array_filter(array_unique([
             $subServiceData['title'] ?? null,
             ...($subServiceData['aliases'] ?? []),
         ])));
+        $subServiceKey = $subServiceData['key'] ?? null;
 
-        $child = Service::query()
-            ->where('parent_service_id', $service->id)
-            ->where(function ($query) use ($candidateTitles) {
-                foreach ($candidateTitles as $index => $title) {
-                    if ($index === 0) {
-                        $query->where('title', $title);
-                    } else {
-                        $query->orWhere('title', $title);
-                    }
-                }
-            })
-            ->first();
+        $child = null;
+
+        if ($hasServiceKey && $subServiceKey) {
+            $child = Service::query()
+                ->where('service_key', $subServiceKey)
+                ->first();
+        }
 
         if (!$child) {
-            return Service::create(array_merge(
+            $child = Service::query()
+                ->where('parent_service_id', $service->id)
+                ->where(function ($query) use ($candidateTitles) {
+                    foreach ($candidateTitles as $index => $title) {
+                        if ($index === 0) {
+                            $query->where('title', $title);
+                        } else {
+                            $query->orWhere('title', $title);
+                        }
+                    }
+                })
+                ->first();
+        }
+
+        if (!$child) {
+            $payload = array_merge(
                 $this->payloadWithTranslations($subServiceData, $hasTranslations),
                 ['parent_service_id' => $service->id]
-            ));
+            );
+
+            if ($hasServiceKey && $subServiceKey) {
+                $payload['service_key'] = $subServiceKey;
+            }
+
+            return Service::create($payload);
         }
 
         $updates = [];
 
-        if ($child->title !== $subServiceData['title']) {
-            $updates['title'] = $subServiceData['title'];
+        if ($child->parent_service_id !== $service->id) {
+            $updates['parent_service_id'] = $service->id;
         }
 
+        if ($hasServiceKey && $subServiceKey && $child->service_key !== $subServiceKey) {
+            $updates['service_key'] = $subServiceKey;
+        }
+
+        $updates = array_merge($updates, $this->canonicalTitleUpdates($child, $subServiceData, $hasTranslations));
         $updates = array_merge($updates, $this->missingTranslationUpdates($child, $subServiceData, $hasTranslations));
 
         if (!empty($updates)) {
@@ -199,6 +257,59 @@ class ServiceCatalogSeeder extends Seeder
         }
 
         return $child->fresh();
+    }
+
+    private function removeDeprecatedCatalogEntries(bool $hasServiceKey): void
+    {
+        $rules = [
+            [
+                'parent_key' => 'photography-videography',
+                'parent_title' => 'Photography & Videography',
+                'titles' => ['Production'],
+                'keys' => ['production'],
+            ],
+            [
+                'parent_key' => 'graphics-printing',
+                'parent_title' => 'Graphics & Printing Design',
+                'titles' => ['Screen Printing'],
+                'keys' => ['screen-printing'],
+            ],
+        ];
+
+        foreach ($rules as $rule) {
+            $parentQuery = Service::query()->whereNull('parent_service_id');
+
+            if ($hasServiceKey && !empty($rule['parent_key'])) {
+                $parentQuery->where('service_key', $rule['parent_key']);
+            } else {
+                $parentQuery->where('title', $rule['parent_title']);
+            }
+
+            $parent = $parentQuery->first();
+
+            if (!$parent) {
+                continue;
+            }
+
+            $parent->subServices()
+                ->where(function ($query) use ($rule, $hasServiceKey) {
+                    $hasCondition = false;
+
+                    if (!empty($rule['titles'])) {
+                        $query->whereIn('title', $rule['titles']);
+                        $hasCondition = true;
+                    }
+
+                    if ($hasServiceKey && !empty($rule['keys'])) {
+                        if ($hasCondition) {
+                            $query->orWhereIn('service_key', $rule['keys']);
+                        } else {
+                            $query->whereIn('service_key', $rule['keys']);
+                        }
+                    }
+                })
+                ->delete();
+        }
     }
 
     private function catalog(): array
@@ -210,16 +321,18 @@ class ServiceCatalogSeeder extends Seeder
                 'title_rw' => 'Ifoto na Videwo',
                 'title_en' => 'Photography & Videography',
                 'title_fr' => 'Photographie et Videographie',
-                'description' => 'Capture weddings, maternity sessions, birthdays, graduations, funerals, live streams, and brand stories with polished visuals and creative storytelling.',
-                'description_rw' => 'Dufata amafoto na videwo z\'ubukwe, maternity, amavuko, graduation, ikiriyo, live streaming, n\'inkuru za brand mu buryo bunoze kandi buhanga.',
-                'description_en' => 'Capture weddings, maternity sessions, birthdays, graduations, funerals, live streams, and brand stories with polished visuals and creative storytelling.',
-                'description_fr' => 'Nous realisons des photos et videos pour mariages, maternite, anniversaires, remises de diplome, funerailles, directs et histoires de marque avec une finition soignee.',
+                'description' => 'Capture weddings, maternity sessions, birthdays, graduations, and brand stories with polished visuals and creative storytelling.',
+                'description_rw' => 'Dufata amafoto na videwo z\'ubukwe, maternity, amavuko, graduation, n\'inkuru za brand mu buryo bunoze kandi buhanga.',
+                'description_en' => 'Capture weddings, maternity sessions, birthdays, graduations, and brand stories with polished visuals and creative storytelling.',
+                'description_fr' => 'Nous realisons des photos et videos pour mariages, maternite, anniversaires, remises de diplome et histoires de marque avec une finition soignee.',
                 'image' => 'https://source.unsplash.com/1200x800/?photography,camera',
                 'sub_services' => [
                     [
-                        'title' => 'Wedding',
+                        'key' => 'weddings',
+                        'title' => 'Weddings',
+                        'aliases' => ['Wedding'],
                         'title_rw' => 'Ubukwe',
-                        'title_en' => 'Wedding',
+                        'title_en' => 'Weddings',
                         'title_fr' => 'Mariage',
                         'description' => 'Full wedding coverage with photo and video highlights.',
                         'description_rw' => 'Ifoto na videwo byuzuye by\'ubukwe birimo ibihe by\'ingenzi n\'ibisubizo byatoranyijwe neza.',
@@ -228,62 +341,7 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?wedding,photography',
                     ],
                     [
-                        'title' => 'Maternity Sessions',
-                        'title_rw' => 'Ifoto z\'abatwite',
-                        'title_en' => 'Maternity Sessions',
-                        'title_fr' => 'Seances maternité',
-                        'description' => 'Warm and elegant maternity sessions that preserve every milestone beautifully.',
-                        'description_rw' => 'Ifoto z\'abatwite zitezwe neza kandi zibika ibihe by\'ingenzi mu buryo bwiza.',
-                        'description_en' => 'Warm and elegant maternity sessions that preserve every milestone beautifully.',
-                        'description_fr' => 'Seances maternite chaleureuses et elegantes pour conserver chaque etape en beaute.',
-                        'image' => 'https://source.unsplash.com/1200x800/?maternity,photography',
-                    ],
-                    [
-                        'title' => 'Birthdays',
-                        'aliases' => ['Birthday', 'Birthday Sessions'],
-                        'title_rw' => 'Ibirori by\'amavuko',
-                        'title_en' => 'Birthdays',
-                        'title_fr' => 'Anniversaires',
-                        'description' => 'Event photography and highlight videos for birthdays and celebrations.',
-                        'description_rw' => 'Ifoto n\'amashusho y\'ibikorwa by\'amavuko n\'indi minsi mikuru.',
-                        'description_en' => 'Event photography and highlight videos for birthdays and celebrations.',
-                        'description_fr' => 'Photos d\'evenement et videos resumes pour anniversaires et celebrations.',
-                        'image' => 'https://source.unsplash.com/1200x800/?birthday,party',
-                    ],
-                    [
-                        'title' => 'Graduation Sessions',
-                        'title_rw' => 'Ifoto za graduation',
-                        'title_en' => 'Graduation Sessions',
-                        'title_fr' => 'Seances de remise de diplome',
-                        'description' => 'Graduation portraits and event coverage that celebrate every achievement.',
-                        'description_rw' => 'Ifoto za graduation n\'amashusho y\'ibirori byo kwizihiza intambwe wagezeho.',
-                        'description_en' => 'Graduation portraits and event coverage that celebrate every achievement.',
-                        'description_fr' => 'Portraits et couverture de remise de diplome pour celebrer chaque reussite.',
-                        'image' => 'https://source.unsplash.com/1200x800/?graduation,portrait',
-                    ],
-                    [
-                        'title' => 'Save the Date Sessions',
-                        'title_rw' => 'Save the Date Sessions',
-                        'title_en' => 'Save the Date Sessions',
-                        'title_fr' => 'Seances Save the Date',
-                        'description' => 'Stylish save the date photo and video sessions for couples and special announcements.',
-                        'description_rw' => 'Amafoto na videwo bya save the date ku bakundana no ku matangazo yihariye.',
-                        'description_en' => 'Stylish save the date photo and video sessions for couples and special announcements.',
-                        'description_fr' => 'Seances photo et video Save the Date elegantes pour couples et annonces speciales.',
-                        'image' => 'https://source.unsplash.com/1200x800/?couple,engagement',
-                    ],
-                    [
-                        'title' => 'Adventure Sessions',
-                        'title_rw' => 'Adventure Sessions',
-                        'title_en' => 'Adventure Sessions',
-                        'title_fr' => 'Seances aventure',
-                        'description' => 'Outdoor and destination sessions designed for bold stories and scenic memories.',
-                        'description_rw' => 'Ifoto zo hanze no ahantu nyaburanga zikwiriye inkuru zidasanzwe n\'ibyo kwibuka.',
-                        'description_en' => 'Outdoor and destination sessions designed for bold stories and scenic memories.',
-                        'description_fr' => 'Seances en plein air et en destination pour des histoires audacieuses et des souvenirs uniques.',
-                        'image' => 'https://source.unsplash.com/1200x800/?adventure,photography',
-                    ],
-                    [
+                        'key' => 'personal-sessions',
                         'title' => 'Personal Sessions',
                         'title_rw' => 'Ifoto z\'umuntu ku giti cye',
                         'title_en' => 'Personal Sessions',
@@ -295,50 +353,77 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?portrait,photography',
                     ],
                     [
-                        'title' => 'Drone Services',
-                        'title_rw' => 'Serivisi za drone',
-                        'title_en' => 'Drone Services',
-                        'title_fr' => 'Services de drone',
-                        'description' => 'Aerial photo and video coverage for events, campaigns, and cinematic reveals.',
-                        'description_rw' => 'Ifoto na videwo zo mu kirere ku birori, campaigns, n\'amashusho agaragaza ibintu mu buryo bwagutse.',
-                        'description_en' => 'Aerial photo and video coverage for events, campaigns, and cinematic reveals.',
-                        'description_fr' => 'Couverture photo et video aerienne pour evenements, campagnes et plans cinematographiques.',
-                        'image' => 'https://source.unsplash.com/1200x800/?drone,aerial',
+                        'key' => 'save-the-date-sessions',
+                        'title' => 'Save the Date Sessions',
+                        'title_rw' => 'Save the Date Sessions',
+                        'title_en' => 'Save the Date Sessions',
+                        'title_fr' => 'Seances Save the Date',
+                        'description' => 'Stylish save the date photo and video sessions for couples and special announcements.',
+                        'description_rw' => 'Amafoto na videwo bya save the date ku bakundana no ku matangazo yihariye.',
+                        'description_en' => 'Stylish save the date photo and video sessions for couples and special announcements.',
+                        'description_fr' => 'Seances photo et video Save the Date elegantes pour couples et annonces speciales.',
+                        'image' => 'https://source.unsplash.com/1200x800/?couple,engagement',
                     ],
                     [
-                        'title' => 'Real Estate',
-                        'aliases' => ['Real Estate Coverage'],
-                        'title_rw' => 'Kwamamaza inzu n\'imitungo',
-                        'title_en' => 'Real Estate',
-                        'title_fr' => 'Immobilier',
-                        'description' => 'Property photography and walkthrough videos for homes, rentals, and developments.',
-                        'description_rw' => 'Ifoto n\'amashusho y\'inzu, apartments n\'indi mitungo yo kwamamaza no kwerekana neza.',
-                        'description_en' => 'Property photography and walkthrough videos for homes, rentals, and developments.',
-                        'description_fr' => 'Photos immobilieres et videos de visite pour maisons, locations et projets.',
-                        'image' => 'https://source.unsplash.com/1200x800/?real-estate,interior',
+                        'key' => 'graduation-sessions',
+                        'title' => 'Graduation Sessions',
+                        'title_rw' => 'Ifoto za graduation',
+                        'title_en' => 'Graduation Sessions',
+                        'title_fr' => 'Seances de remise de diplome',
+                        'description' => 'Graduation portraits and event coverage that celebrate every achievement.',
+                        'description_rw' => 'Ifoto za graduation n\'amashusho y\'ibirori byo kwizihiza intambwe wagezeho.',
+                        'description_en' => 'Graduation portraits and event coverage that celebrate every achievement.',
+                        'description_fr' => 'Portraits et couverture de remise de diplome pour celebrer chaque reussite.',
+                        'image' => 'https://source.unsplash.com/1200x800/?graduation,portrait',
                     ],
                     [
-                        'title' => 'Funerals',
-                        'aliases' => ['Funeral', 'Funeral Coverage'],
-                        'title_rw' => 'Ikiriyo n\'ibyibutso',
-                        'title_en' => 'Funerals',
-                        'title_fr' => 'Funerailles',
-                        'description' => 'Respectful photo and video coverage for funerals and memorial gatherings.',
-                        'description_rw' => 'Ifoto na videwo bikorwa mu cyubahiro ku kiriyo no mu bikorwa byo kwibuka.',
-                        'description_en' => 'Respectful photo and video coverage for funerals and memorial gatherings.',
-                        'description_fr' => 'Couverture photo et video respectueuse pour funerailles et commemorations.',
-                        'image' => 'https://source.unsplash.com/1200x800/?memorial,ceremony',
+                        'key' => 'birthday-sessions',
+                        'title' => 'Birthday Sessions',
+                        'aliases' => ['Birthday', 'Birthday Sessions', 'Birthdays'],
+                        'title_rw' => 'Ibirori by\'amavuko',
+                        'title_en' => 'Birthday Sessions',
+                        'title_fr' => 'Seances anniversaire',
+                        'description' => 'Event photography and highlight videos for birthdays and celebrations.',
+                        'description_rw' => 'Ifoto n\'amashusho y\'ibikorwa by\'amavuko n\'indi minsi mikuru.',
+                        'description_en' => 'Event photography and highlight videos for birthdays and celebrations.',
+                        'description_fr' => 'Photos d\'evenement et videos resumes pour anniversaires et celebrations.',
+                        'image' => 'https://source.unsplash.com/1200x800/?birthday,party',
                     ],
                     [
-                        'title' => 'Live Streaming',
-                        'title_rw' => 'Live Streaming',
-                        'title_en' => 'Live Streaming',
-                        'title_fr' => 'Diffusion en direct',
-                        'description' => 'Multi-camera live streaming for events, ceremonies, and online audiences.',
-                        'description_rw' => 'Live streaming y\'ibirori n\'imihango ikoresheje camera nyinshi ku bayirebera online.',
-                        'description_en' => 'Multi-camera live streaming for events, ceremonies, and online audiences.',
-                        'description_fr' => 'Diffusion en direct multi-camera pour evenements, ceremonies et publics en ligne.',
-                        'image' => 'https://source.unsplash.com/1200x800/?livestream,camera',
+                        'key' => 'adventure-sessions',
+                        'title' => 'Adventure Sessions',
+                        'title_rw' => 'Adventure Sessions',
+                        'title_en' => 'Adventure Sessions',
+                        'title_fr' => 'Seances aventure',
+                        'description' => 'Outdoor and destination sessions designed for bold stories and scenic memories.',
+                        'description_rw' => 'Ifoto zo hanze no ahantu nyaburanga zikwiriye inkuru zidasanzwe n\'ibyo kwibuka.',
+                        'description_en' => 'Outdoor and destination sessions designed for bold stories and scenic memories.',
+                        'description_fr' => 'Seances en plein air et en destination pour des histoires audacieuses et des souvenirs uniques.',
+                        'image' => 'https://source.unsplash.com/1200x800/?adventure,photography',
+                    ],
+                    [
+                        'key' => 'maternity-sessions',
+                        'title' => 'Maternity Sessions',
+                        'title_rw' => 'Ifoto z\'abatwite',
+                        'title_en' => 'Maternity Sessions',
+                        'title_fr' => 'Seances maternité',
+                        'description' => 'Warm and elegant maternity sessions that preserve every milestone beautifully.',
+                        'description_rw' => 'Ifoto z\'abatwite zitezwe neza kandi zibika ibihe by\'ingenzi mu buryo bwiza.',
+                        'description_en' => 'Warm and elegant maternity sessions that preserve every milestone beautifully.',
+                        'description_fr' => 'Seances maternite chaleureuses et elegantes pour conserver chaque etape en beaute.',
+                        'image' => 'https://source.unsplash.com/1200x800/?maternity,photography',
+                    ],
+                    [
+                        'key' => 'festive-sessions',
+                        'title' => 'Festive Sessions',
+                        'title_rw' => 'Ifoto z\'iminsi mikuru',
+                        'title_en' => 'Festive Sessions',
+                        'title_fr' => 'Seances festives',
+                        'description' => 'Colorful festive sessions for holiday moments, family celebrations, and seasonal memories.',
+                        'description_rw' => 'Ifoto z\'iminsi mikuru n\'ibihe byo kwizihiza mu muryango cyangwa mu bihe byihariye by\'umwaka.',
+                        'description_en' => 'Colorful festive sessions for holiday moments, family celebrations, and seasonal memories.',
+                        'description_fr' => 'Seances festives colorees pour fetes, celebrations familiales et souvenirs de saison.',
+                        'image' => 'https://source.unsplash.com/1200x800/?festival,celebration',
                     ],
                 ],
             ],
@@ -355,17 +440,20 @@ class ServiceCatalogSeeder extends Seeder
                 'image' => 'https://source.unsplash.com/1200x800/?graphic-design,printing',
                 'sub_services' => [
                     [
-                        'title' => 'Flyers Printing',
-                        'title_rw' => 'Kwamamaza ku maflyers',
-                        'title_en' => 'Flyers Printing',
-                        'title_fr' => 'Impression de flyers',
-                        'description' => 'Promotional flyers in multiple sizes and finishes.',
-                        'description_rw' => 'Flyers zo kwamamaza mu bunini butandukanye no mu kurangiza kwiza.',
-                        'description_en' => 'Promotional flyers in multiple sizes and finishes.',
-                        'description_fr' => 'Flyers promotionnels en plusieurs formats et finitions.',
-                        'image' => 'https://source.unsplash.com/1200x800/?flyer,print',
+                        'key' => 'banner-printing',
+                        'title' => 'Banner Printing',
+                        'aliases' => ['Banners (All Kinds)', 'Banner Printing'],
+                        'title_rw' => 'Kwamamaza kuri banner',
+                        'title_en' => 'Banner Printing',
+                        'title_fr' => 'Impression de bannieres',
+                        'description' => 'Indoor and outdoor banners for promotions, events, and storefront visibility.',
+                        'description_rw' => 'Banners za indoor na outdoor zikoreshwa mu promotions, events no kugaragaza ubucuruzi.',
+                        'description_en' => 'Indoor and outdoor banners for promotions, events, and storefront visibility.',
+                        'description_fr' => 'Banderoles interieures et exterieures pour promotions, evenements et visibilite commerciale.',
+                        'image' => 'https://source.unsplash.com/1200x800/?banner,printing',
                     ],
                     [
+                        'key' => 'invitation-printing',
                         'title' => 'Invitation Printing',
                         'title_rw' => 'Kwamamaza ku makarita y\'ubutumire',
                         'title_en' => 'Invitation Printing',
@@ -377,17 +465,7 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?invitation,print',
                     ],
                     [
-                        'title' => 'Logo Design',
-                        'title_rw' => 'Gukora logo',
-                        'title_en' => 'Logo Design',
-                        'title_fr' => 'Creation de logo',
-                        'description' => 'Distinctive logos and brand marks.',
-                        'description_rw' => 'Dukora logos n\'ibirango bitandukanya business yawe n\'izindi.',
-                        'description_en' => 'Distinctive logos and brand marks.',
-                        'description_fr' => 'Logos et signes de marque distinctifs.',
-                        'image' => 'https://source.unsplash.com/1200x800/?logo,design',
-                    ],
-                    [
+                        'key' => 'digital-printing',
                         'title' => 'Digital Printing',
                         'title_rw' => 'Icapiro rya digital',
                         'title_en' => 'Digital Printing',
@@ -399,29 +477,7 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?printing,press',
                     ],
                     [
-                        'title' => 'Embroidery',
-                        'title_rw' => 'Ubudozi bw\'ibirango',
-                        'title_en' => 'Embroidery',
-                        'title_fr' => 'Broderie',
-                        'description' => 'Custom embroidery for apparel and uniforms.',
-                        'description_rw' => 'Ubudozi bw\'ibirango, amazina na designs ku myenda na uniformes.',
-                        'description_en' => 'Custom embroidery for apparel and uniforms.',
-                        'description_fr' => 'Broderie personnalisee pour vetements et uniformes.',
-                        'image' => 'https://source.unsplash.com/1200x800/?embroidery,textile',
-                    ],
-                    [
-                        'title' => 'Banners (All Kinds)',
-                        'aliases' => ['Banner Printing'],
-                        'title_rw' => 'Banners z\'ubwoko bwose',
-                        'title_en' => 'Banners (All Kinds)',
-                        'title_fr' => 'Banderoles de tout type',
-                        'description' => 'Indoor and outdoor banners for promotions, events, and storefront visibility.',
-                        'description_rw' => 'Banners za indoor na outdoor zikoreshwa mu promotions, events no kugaragaza ubucuruzi.',
-                        'description_en' => 'Indoor and outdoor banners for promotions, events, and storefront visibility.',
-                        'description_fr' => 'Banderoles interieures et exterieures pour promotions, evenements et visibilite commerciale.',
-                        'image' => 'https://source.unsplash.com/1200x800/?banner,printing',
-                    ],
-                    [
+                        'key' => 'billboards',
                         'title' => 'Billboards',
                         'aliases' => ['Billboard'],
                         'title_rw' => 'Kwamamaza rya billboard',
@@ -434,22 +490,12 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?billboard,advertising',
                     ],
                     [
-                        'title' => 'Screen Printing',
-                        'title_rw' => 'Icapiro rya screen printing',
-                        'title_en' => 'Screen Printing',
-                        'title_fr' => 'Serigraphie',
-                        'description' => 'Durable screen printing for t-shirts, bags, uniforms, and promotional merchandise.',
-                        'description_rw' => 'Icapiro rya screen printing riramba ku myenda, sacs, uniformes n\'ibindi bikoresho byo kwamamaza.',
-                        'description_en' => 'Durable screen printing for t-shirts, bags, uniforms, and promotional merchandise.',
-                        'description_fr' => 'Serigraphie durable pour t-shirts, sacs, uniformes et objets promotionnels.',
-                        'image' => 'https://source.unsplash.com/1200x800/?screen-printing,tshirt',
-                    ],
-                    [
-                        'title' => 'Pull-Up Materials',
-                        'aliases' => ['Pull Up Material', 'Roll-Up Materials', 'Roll Up Material'],
+                        'key' => 'pull-ups-cards',
+                        'title' => 'Pull-Ups Cards',
+                        'aliases' => ['Pull-Up Materials', 'Pull Up Material', 'Roll-Up Materials', 'Roll Up Material'],
                         'title_rw' => 'Pull-up na roll-up',
-                        'title_en' => 'Pull-Up Materials',
-                        'title_fr' => 'Supports roll-up',
+                        'title_en' => 'Pull-Ups Cards',
+                        'title_fr' => 'Cartes pull-up et roll-up',
                         'description' => 'Portable pull-up and roll-up displays for conferences, exhibitions, and receptions.',
                         'description_rw' => 'Pull-up na roll-up zoroha gutwara kandi zikoreshwa mu nama, exhibitions no kwakira abashyitsi.',
                         'description_en' => 'Portable pull-up and roll-up displays for conferences, exhibitions, and receptions.',
@@ -457,18 +503,7 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?rollup,banner',
                     ],
                     [
-                        'title' => 'Backdrops',
-                        'aliases' => ['Backdrop'],
-                        'title_rw' => 'Backdrops',
-                        'title_en' => 'Backdrops',
-                        'title_fr' => 'Toiles de fond',
-                        'description' => 'Branded backdrops for events, conferences, red carpets, and photo booths.',
-                        'description_rw' => 'Backdrops zifite branding ku birori, conferences, red carpet na photo booth.',
-                        'description_en' => 'Branded backdrops for events, conferences, red carpets, and photo booths.',
-                        'description_fr' => 'Toiles de fond personnalisees pour evenements, conferences, tapis rouges et stands photo.',
-                        'image' => 'https://source.unsplash.com/1200x800/?backdrop,event',
-                    ],
-                    [
+                        'key' => 'id-cards',
                         'title' => 'ID Cards',
                         'aliases' => ['ID Card'],
                         'title_rw' => 'Indangamuntu z\'akazi',
@@ -481,6 +516,7 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?id-card,badge',
                     ],
                     [
+                        'key' => 'business-cards',
                         'title' => 'Business Cards',
                         'aliases' => ['Business Card'],
                         'title_rw' => 'Amakarita y\'akazi',
@@ -493,16 +529,66 @@ class ServiceCatalogSeeder extends Seeder
                         'image' => 'https://source.unsplash.com/1200x800/?business-card,print',
                     ],
                     [
-                        'title' => 'Certificates',
-                        'aliases' => ['Certificate'],
+                        'key' => 'flyers-printing',
+                        'title' => 'Flyers Printing',
+                        'title_rw' => 'Kwamamaza ku maflyers',
+                        'title_en' => 'Flyers Printing',
+                        'title_fr' => 'Impression de flyers',
+                        'description' => 'Promotional flyers in multiple sizes and finishes.',
+                        'description_rw' => 'Flyers zo kwamamaza mu bunini butandukanye no mu kurangiza kwiza.',
+                        'description_en' => 'Promotional flyers in multiple sizes and finishes.',
+                        'description_fr' => 'Flyers promotionnels en plusieurs formats et finitions.',
+                        'image' => 'https://source.unsplash.com/1200x800/?flyer,print',
+                    ],
+                    [
+                        'key' => 'embroidery',
+                        'title' => 'Embroidery',
+                        'title_rw' => 'Ubudozi bw\'ibirango',
+                        'title_en' => 'Embroidery',
+                        'title_fr' => 'Broderie',
+                        'description' => 'Custom embroidery for apparel and uniforms.',
+                        'description_rw' => 'Ubudozi bw\'ibirango, amazina na designs ku myenda na uniformes.',
+                        'description_en' => 'Custom embroidery for apparel and uniforms.',
+                        'description_fr' => 'Broderie personnalisee pour vetements et uniformes.',
+                        'image' => 'https://source.unsplash.com/1200x800/?embroidery,textile',
+                    ],
+                    [
+                        'key' => 'logo-design',
+                        'title' => 'Logo Design',
+                        'title_rw' => 'Gukora logo',
+                        'title_en' => 'Logo Design',
+                        'title_fr' => 'Creation de logo',
+                        'description' => 'Distinctive logos and brand marks.',
+                        'description_rw' => 'Dukora logos n\'ibirango bitandukanya business yawe n\'izindi.',
+                        'description_en' => 'Distinctive logos and brand marks.',
+                        'description_fr' => 'Logos et signes de marque distinctifs.',
+                        'image' => 'https://source.unsplash.com/1200x800/?logo,design',
+                    ],
+                    [
+                        'key' => 'certification',
+                        'title' => 'Certification',
+                        'aliases' => ['Certificates', 'Certificate'],
                         'title_rw' => 'Impamyabushobozi',
-                        'title_en' => 'Certificates',
-                        'title_fr' => 'Certificats',
+                        'title_en' => 'Certification',
+                        'title_fr' => 'Certification',
                         'description' => 'Well-designed certificates for trainings, recognition, graduations, and awards.',
                         'description_rw' => 'Certificates ziteguye neza ku mahugurwa, ishimwe, graduation n\'ibihembo.',
                         'description_en' => 'Well-designed certificates for trainings, recognition, graduations, and awards.',
                         'description_fr' => 'Certificats bien concus pour formations, reconnaissance, remises de diplome et prix.',
                         'image' => 'https://source.unsplash.com/1200x800/?certificate,award',
+                    ],
+                    [
+                        'key' => 'backdrops',
+                        'title' => 'Backdrops',
+                        'aliases' => ['Backdrop'],
+                        'title_rw' => 'Backdrops',
+                        'title_en' => 'Backdrops',
+                        'title_fr' => 'Toiles de fond',
+                        'description' => 'Branded backdrops for events, conferences, red carpets, and photo booths.',
+                        'description_rw' => 'Backdrops zifite branding ku birori, conferences, red carpet na photo booth.',
+                        'description_en' => 'Branded backdrops for events, conferences, red carpets, and photo booths.',
+                        'description_fr' => 'Toiles de fond personnalisees pour evenements, conferences, tapis rouges et stands photo.',
+                        'image' => 'https://source.unsplash.com/1200x800/?backdrop,event',
                     ],
                 ],
             ],
@@ -519,28 +605,93 @@ class ServiceCatalogSeeder extends Seeder
                 'image' => 'https://source.unsplash.com/1200x800/?makeup,beauty',
             ],
             [
-                'key' => 'software-development',
-                'title' => 'Software Development',
-                'title_rw' => 'Gukora software',
-                'title_en' => 'Software Development',
-                'title_fr' => 'Developpement logiciel',
-                'description' => 'Modern web and mobile solutions built for performance and growth.',
-                'description_rw' => 'Dukora websites na mobile apps zigezweho, zihuta kandi zifasha ubucuruzi gukura.',
-                'description_en' => 'Modern web and mobile solutions built for performance and growth.',
-                'description_fr' => 'Solutions web et mobiles modernes concues pour la performance et la croissance.',
-                'image' => 'https://source.unsplash.com/1200x800/?software,code',
-            ],
-            [
-                'key' => 'sound-system',
-                'title' => 'Sound System',
-                'title_rw' => 'Sisitemu y\'amajwi',
-                'title_en' => 'Sound System',
-                'title_fr' => 'Sonorisation',
-                'description' => 'Professional sound setup for weddings, funerals, celebrations, conferences, and live events.',
-                'description_rw' => 'Dutegura amajwi y\'umwuga ku bukwe, ikiriyo, ibirori, conferences n\'izindi events.',
-                'description_en' => 'Professional sound setup for weddings, funerals, celebrations, conferences, and live events.',
-                'description_fr' => 'Installation sonore professionnelle pour mariages, funerailles, celebrations, conferences et evenements live.',
-                'image' => 'https://source.unsplash.com/1200x800/?sound-system,event',
+                'key' => 'other-services',
+                'title' => 'Other Services',
+                'title_rw' => 'Izindi Serivisi',
+                'title_en' => 'Other Services',
+                'title_fr' => 'Autres services',
+                'description' => 'Explore extra solutions like funerals, live streaming, drone services, real estate services, sound systems, and website development for your project or event.',
+                'description_rw' => 'Reba izindi serivisi zirimo ikiriyo, live streaming, serivisi za drone, real estate services, sound system, na website development ku mushinga cyangwa event yawe.',
+                'description_en' => 'Explore extra solutions like funerals, live streaming, drone services, real estate services, sound systems, and website development for your project or event.',
+                'description_fr' => 'Decouvrez d\'autres solutions comme les funerailles, la diffusion en direct, les services de drone, les services immobiliers, la sonorisation et le developpement de sites web pour votre projet ou evenement.',
+                'image' => 'https://source.unsplash.com/1200x800/?technology,event,service',
+                'sub_services' => [
+                    [
+                        'key' => 'software-development',
+                        'title' => 'Website Development',
+                        'aliases' => ['Software Development'],
+                        'title_rw' => 'Gukora websites',
+                        'title_en' => 'Website Development',
+                        'title_fr' => 'Developpement de sites web',
+                        'description' => 'Modern website solutions built for performance, visibility, and business growth.',
+                        'description_rw' => 'Dukora websites zigezweho, zihuta kandi zifasha ubucuruzi kugaragara no gukura.',
+                        'description_en' => 'Modern website solutions built for performance, visibility, and business growth.',
+                        'description_fr' => 'Solutions de sites web modernes concues pour la performance, la visibilite et la croissance.',
+                        'image' => 'https://source.unsplash.com/1200x800/?software,code',
+                    ],
+                    [
+                        'key' => 'sound-system',
+                        'title' => 'Sound System',
+                        'title_rw' => 'Sisitemu y\'amajwi',
+                        'title_en' => 'Sound System',
+                        'title_fr' => 'Sonorisation',
+                        'description' => 'Professional sound setup for weddings, funerals, celebrations, conferences, and live events.',
+                        'description_rw' => 'Dutegura amajwi y\'umwuga ku bukwe, ikiriyo, ibirori, conferences n\'izindi events.',
+                        'description_en' => 'Professional sound setup for weddings, funerals, celebrations, conferences, and live events.',
+                        'description_fr' => 'Installation sonore professionnelle pour mariages, funerailles, celebrations, conferences et evenements live.',
+                        'image' => 'https://source.unsplash.com/1200x800/?sound-system,event',
+                    ],
+                    [
+                        'key' => 'funerals',
+                        'title' => 'Funerals',
+                        'aliases' => ['Funeral', 'Funeral Coverage'],
+                        'title_rw' => 'Ikiriyo n\'ibyibutso',
+                        'title_en' => 'Funerals',
+                        'title_fr' => 'Funerailles',
+                        'description' => 'Respectful photo and video coverage for funerals and memorial gatherings.',
+                        'description_rw' => 'Ifoto na videwo bikorwa mu cyubahiro ku kiriyo no mu bikorwa byo kwibuka.',
+                        'description_en' => 'Respectful photo and video coverage for funerals and memorial gatherings.',
+                        'description_fr' => 'Couverture photo et video respectueuse pour funerailles et commemorations.',
+                        'image' => 'https://source.unsplash.com/1200x800/?memorial,ceremony',
+                    ],
+                    [
+                        'key' => 'live-streaming',
+                        'title' => 'Live Streaming',
+                        'title_rw' => 'Live Streaming',
+                        'title_en' => 'Live Streaming',
+                        'title_fr' => 'Diffusion en direct',
+                        'description' => 'Multi-camera live streaming for events, ceremonies, and online audiences.',
+                        'description_rw' => 'Live streaming y\'ibirori n\'imihango ikoresheje camera nyinshi ku bayirebera online.',
+                        'description_en' => 'Multi-camera live streaming for events, ceremonies, and online audiences.',
+                        'description_fr' => 'Diffusion en direct multi-camera pour evenements, ceremonies et publics en ligne.',
+                        'image' => 'https://source.unsplash.com/1200x800/?livestream,camera',
+                    ],
+                    [
+                        'key' => 'drone-services',
+                        'title' => 'Drone Services',
+                        'title_rw' => 'Serivisi za drone',
+                        'title_en' => 'Drone Services',
+                        'title_fr' => 'Services de drone',
+                        'description' => 'Aerial photo and video coverage for events, campaigns, and cinematic reveals.',
+                        'description_rw' => 'Ifoto na videwo zo mu kirere ku birori, campaigns, n\'amashusho agaragaza ibintu mu buryo bwagutse.',
+                        'description_en' => 'Aerial photo and video coverage for events, campaigns, and cinematic reveals.',
+                        'description_fr' => 'Couverture photo et video aerienne pour evenements, campagnes et plans cinematographiques.',
+                        'image' => 'https://source.unsplash.com/1200x800/?drone,aerial',
+                    ],
+                    [
+                        'key' => 'real-estate',
+                        'title' => 'Real Estate Services',
+                        'aliases' => ['Real Estate', 'Real Estate Coverage'],
+                        'title_rw' => 'Kwamamaza inzu n\'imitungo',
+                        'title_en' => 'Real Estate Services',
+                        'title_fr' => 'Services immobiliers',
+                        'description' => 'Property photography and walkthrough videos for homes, rentals, and developments.',
+                        'description_rw' => 'Ifoto n\'amashusho y\'inzu, apartments n\'indi mitungo yo kwamamaza no kwerekana neza.',
+                        'description_en' => 'Property photography and walkthrough videos for homes, rentals, and developments.',
+                        'description_fr' => 'Photos immobilieres et videos de visite pour maisons, locations et projets.',
+                        'image' => 'https://source.unsplash.com/1200x800/?real-estate,interior',
+                    ],
+                ],
             ],
         ];
     }

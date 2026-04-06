@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Models\UserReward;
 use App\Models\UserActivity;
 use App\Services\SupportChatService;
+use Database\Seeders\ServiceCatalogSeeder;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -89,8 +90,23 @@ class AdminController extends Controller
      */
     public function services()
     {
+        (new ServiceCatalogSeeder())->run();
+
+        $services = Service::query()
+            ->whereNull('parent_service_id')
+            ->withCount('subServices')
+            ->get()
+            ->sortBy(fn (Service $service) => $this->serviceDisplayOrder($service))
+            ->values()
+            ->map(function (Service $service) {
+                $payload = $service->toArray();
+                $payload['is_fixed'] = $this->isFixedTopLevelService($service);
+
+                return $payload;
+            });
+
         return Inertia::render('Admin/Services/Index', [
-            'services' => Service::whereNull('parent_service_id')->latest()->get(),
+            'services' => $services,
         ]);
     }
 
@@ -99,28 +115,9 @@ class AdminController extends Controller
      */
     public function servicesStore(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'title_rw' => 'nullable|string|max:255',
-            'title_en' => 'nullable|string|max:255',
-            'title_fr' => 'nullable|string|max:255',
-            'description' => 'required|string',
-            'description_rw' => 'nullable|string',
-            'description_en' => 'nullable|string',
-            'description_fr' => 'nullable|string',
-            'image' => 'nullable|file|max:512000',
+        throw ValidationException::withMessages([
+            'title' => 'Top-level service cards are fixed. Add items inside the four default service categories instead.',
         ]);
-
-        $this->ensureImageOrVideoUpload($request, 'image');
-        $validated = $this->normalizeServiceTranslations($validated);
-
-        if ($request->hasFile('image')) {
-            $validated['image'] = $this->storeMediaFile($request, 'image', 'services');
-        }
-
-        $validated['parent_service_id'] = null;
-        Service::create($validated);
-        return back()->with('success', 'Service created!');
     }
 
     /**
@@ -147,6 +144,10 @@ class AdminController extends Controller
             $validated['image'] = $this->storeMediaFile($request, 'image', 'services');
         }
 
+        if ($this->isFixedTopLevelService($service)) {
+            $validated = array_merge($validated, $this->lockedTopLevelTitles($service));
+        }
+
         $service->update($validated);
         return back()->with('success', 'Service updated!');
     }
@@ -156,6 +157,10 @@ class AdminController extends Controller
      */
     public function servicesDestroy(Service $service)
     {
+        if ($this->isFixedTopLevelService($service)) {
+            return back()->with('error', 'Default top-level service cards cannot be deleted.');
+        }
+
         $service->delete();
         return back()->with('success', 'Service deleted!');
     }
@@ -167,8 +172,67 @@ class AdminController extends Controller
     {
         return Inertia::render('Admin/Services/SubServices', [
             'service' => $service,
-            'subServices' => $service->subServices()->latest()->get(),
+            'subServices' => $this->orderedSubServices($service),
         ]);
+    }
+
+    private function featuredSubServiceOrder(): array
+    {
+        return [
+            'photography-videography' => [
+                'weddings',
+                'personal-sessions',
+                'save-the-date-sessions',
+                'graduation-sessions',
+                'birthday-sessions',
+                'adventure-sessions',
+                'maternity-sessions',
+                'festive-sessions',
+            ],
+            'graphics-printing' => [
+                'banner-printing',
+                'invitation-printing',
+                'digital-printing',
+                'billboards',
+                'pull-ups-cards',
+                'id-cards',
+                'business-cards',
+                'flyers-printing',
+                'embroidery',
+                'logo-design',
+                'certification',
+                'backdrops',
+            ],
+            'other-services' => [
+                'live-streaming',
+                'drone-services',
+                'real-estate',
+                'sound-system',
+                'software-development',
+                'funerals',
+            ],
+        ];
+    }
+
+    private function orderedSubServices(Service $service)
+    {
+        $subServices = $service->subServices()->get();
+
+        if (!Schema::hasColumn('services', 'service_key')) {
+            return $subServices->sortBy('title')->values();
+        }
+
+        $order = array_flip($this->featuredSubServiceOrder()[$service->service_key] ?? []);
+
+        if ($order === []) {
+            return $subServices->sortBy('title')->values();
+        }
+
+        return $subServices->sortBy(function (Service $subService) use ($order) {
+            $position = $order[$subService->service_key] ?? 999;
+
+            return sprintf('%04d::%s', $position, $subService->title);
+        })->values();
     }
 
     /**
@@ -265,6 +329,121 @@ class AdminController extends Controller
         return $validated;
     }
 
+    private function fixedTopLevelCatalog(): array
+    {
+        return [
+            'photography-videography' => [
+                'title' => 'Photography & Videography',
+                'title_rw' => 'Ifoto na Videwo',
+                'title_en' => 'Photography & Videography',
+                'title_fr' => 'Photographie et Videographie',
+            ],
+            'graphics-printing' => [
+                'title' => 'Graphics & Printing Design',
+                'title_rw' => 'Igishushanyo n\'Icapiro',
+                'title_en' => 'Graphics & Printing Design',
+                'title_fr' => 'Design Graphique et Impression',
+            ],
+            'make-up' => [
+                'title' => 'Make Up',
+                'title_rw' => 'Makeup',
+                'title_en' => 'Make Up',
+                'title_fr' => 'Maquillage',
+            ],
+            'other-services' => [
+                'title' => 'Other Services',
+                'title_rw' => 'Izindi Serivisi',
+                'title_en' => 'Other Services',
+                'title_fr' => 'Autres services',
+            ],
+        ];
+    }
+
+    private function fixedTopLevelKey(Service $service): ?string
+    {
+        if ($service->parent_service_id !== null) {
+            return null;
+        }
+
+        $catalog = $this->fixedTopLevelCatalog();
+
+        if (!empty($service->service_key) && array_key_exists($service->service_key, $catalog)) {
+            return $service->service_key;
+        }
+
+        return collect($catalog)->search(fn (array $item) => $item['title'] === $service->title) ?: null;
+    }
+
+    private function isFixedTopLevelService(Service $service): bool
+    {
+        return $this->fixedTopLevelKey($service) !== null;
+    }
+
+    private function lockedTopLevelTitles(Service $service): array
+    {
+        $key = $this->fixedTopLevelKey($service);
+
+        if (!$key) {
+            return [];
+        }
+
+        return $this->fixedTopLevelCatalog()[$key];
+    }
+
+    private function serviceDisplayOrder(Service $service): int
+    {
+        $order = array_flip(array_keys($this->fixedTopLevelCatalog()));
+        $key = $this->fixedTopLevelKey($service);
+
+        if ($key !== null && array_key_exists($key, $order)) {
+            return $order[$key];
+        }
+
+        return 999 + (int) $service->id;
+    }
+
+    private function normalizePortfolioTranslations(array $validated): array
+    {
+        if (!Schema::hasColumn('portfolios', 'title_rw')) {
+            return $validated;
+        }
+
+        $validated['title_rw'] = filled($validated['title_rw'] ?? null) ? $validated['title_rw'] : null;
+        $validated['title_en'] = filled($validated['title_en'] ?? null) ? $validated['title_en'] : $validated['title'];
+        $validated['title_fr'] = filled($validated['title_fr'] ?? null) ? $validated['title_fr'] : null;
+        $validated['description_rw'] = filled($validated['description_rw'] ?? null) ? $validated['description_rw'] : null;
+        $validated['description_en'] = filled($validated['description_en'] ?? null)
+            ? $validated['description_en']
+            : ($validated['description'] ?? null);
+        $validated['description_fr'] = filled($validated['description_fr'] ?? null) ? $validated['description_fr'] : null;
+        $validated['category_rw'] = filled($validated['category_rw'] ?? null) ? $validated['category_rw'] : null;
+        $validated['category_en'] = filled($validated['category_en'] ?? null) ? $validated['category_en'] : $validated['category'];
+        $validated['category_fr'] = filled($validated['category_fr'] ?? null) ? $validated['category_fr'] : null;
+
+        return $validated;
+    }
+
+    private function normalizePostTranslations(array $validated): array
+    {
+        if (!Schema::hasColumn('posts', 'title_rw')) {
+            return $validated;
+        }
+
+        $validated['title_rw'] = filled($validated['title_rw'] ?? null) ? $validated['title_rw'] : null;
+        $validated['title_en'] = filled($validated['title_en'] ?? null) ? $validated['title_en'] : $validated['title'];
+        $validated['title_fr'] = filled($validated['title_fr'] ?? null) ? $validated['title_fr'] : null;
+        $validated['content_rw'] = filled($validated['content_rw'] ?? null) ? $validated['content_rw'] : null;
+        $validated['content_en'] = filled($validated['content_en'] ?? null)
+            ? $validated['content_en']
+            : ($validated['content'] ?? null);
+        $validated['content_fr'] = filled($validated['content_fr'] ?? null) ? $validated['content_fr'] : null;
+        $validated['category_rw'] = filled($validated['category_rw'] ?? null) ? $validated['category_rw'] : null;
+        $validated['category_en'] = filled($validated['category_en'] ?? null) ? $validated['category_en'] : $validated['category'];
+        $validated['category_fr'] = filled($validated['category_fr'] ?? null) ? $validated['category_fr'] : null;
+
+        return $validated;
+    }
+
     // ==================== PORTFOLIOS ====================
     
     public function portfolios()
@@ -278,17 +457,31 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'description' => 'required|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'category' => 'required|string',
+            'category_rw' => 'nullable|string|max:255',
+            'category_en' => 'nullable|string|max:255',
+            'category_fr' => 'nullable|string|max:255',
             'image' => 'nullable|file|max:512000',
+            'delete_image' => 'boolean',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
+        $validated = $this->normalizePortfolioTranslations($validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'portfolio');
+        } else {
+            $validated['image'] = '';
         }
 
+        unset($validated['delete_image']);
         Portfolio::create($validated);
         return back()->with('success', 'Portfolio created!');
     }
@@ -297,17 +490,33 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'description' => 'required|string',
+            'description_rw' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'description_fr' => 'nullable|string',
             'category' => 'required|string',
+            'category_rw' => 'nullable|string|max:255',
+            'category_en' => 'nullable|string|max:255',
+            'category_fr' => 'nullable|string|max:255',
             'image' => 'nullable|file|max:512000',
+            'delete_image' => 'boolean',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
+        $validated = $this->normalizePortfolioTranslations($validated);
 
-        if ($request->hasFile('image')) {
+        if ($request->boolean('delete_image')) {
+            $validated['image'] = '';
+        } elseif ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'portfolio');
+        } else {
+            unset($validated['image']);
         }
 
+        unset($validated['delete_image']);
         $portfolio->update($validated);
         return back()->with('success', 'Portfolio updated!');
     }
@@ -508,14 +717,26 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'content' => 'required|string',
+            'content_rw' => 'nullable|string',
+            'content_en' => 'nullable|string',
+            'content_fr' => 'nullable|string',
             'category' => 'required|string',
+            'category_rw' => 'nullable|string|max:255',
+            'category_en' => 'nullable|string|max:255',
+            'category_fr' => 'nullable|string|max:255',
             'image' => 'nullable|file|max:512000',
             'video' => 'nullable|file|max:5120000',
+            'delete_image' => 'boolean',
+            'delete_video' => 'boolean',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
         $this->ensureVideoUpload($request, 'video');
+        $validated = $this->normalizePostTranslations($validated);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'posts');
@@ -525,6 +746,7 @@ class AdminController extends Controller
             $validated['video'] = $this->storeMediaFile($request, 'video', 'posts');
         }
 
+        unset($validated['delete_image'], $validated['delete_video']);
         Post::create($validated);
         return back()->with('success', 'Post created!');
     }
@@ -533,23 +755,44 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'title_rw' => 'nullable|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'title_fr' => 'nullable|string|max:255',
             'content' => 'required|string',
+            'content_rw' => 'nullable|string',
+            'content_en' => 'nullable|string',
+            'content_fr' => 'nullable|string',
             'category' => 'required|string',
+            'category_rw' => 'nullable|string|max:255',
+            'category_en' => 'nullable|string|max:255',
+            'category_fr' => 'nullable|string|max:255',
             'image' => 'nullable|file|max:512000',
             'video' => 'nullable|file|max:5120000',
+            'delete_image' => 'boolean',
+            'delete_video' => 'boolean',
         ]);
 
         $this->ensureImageOrVideoUpload($request, 'image');
         $this->ensureVideoUpload($request, 'video');
+        $validated = $this->normalizePostTranslations($validated);
 
-        if ($request->hasFile('image')) {
+        if ($request->boolean('delete_image')) {
+            $validated['image'] = null;
+        } elseif ($request->hasFile('image')) {
             $validated['image'] = $this->storeMediaFile($request, 'image', 'posts');
+        } else {
+            unset($validated['image']);
         }
 
-        if ($request->hasFile('video')) {
+        if ($request->boolean('delete_video')) {
+            $validated['video'] = null;
+        } elseif ($request->hasFile('video')) {
             $validated['video'] = $this->storeMediaFile($request, 'video', 'posts');
+        } else {
+            unset($validated['video']);
         }
 
+        unset($validated['delete_image'], $validated['delete_video']);
         $post->update($validated);
         return back()->with('success', 'Post updated!');
     }

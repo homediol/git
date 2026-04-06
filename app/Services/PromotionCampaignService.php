@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\PromotionCampaignMail;
 use App\Models\PromotionCampaign;
 use App\Models\PromotionCampaignRecipient;
+use App\Models\RewardRewind;
 use App\Models\User;
 use App\Models\UserReward;
 use App\Notifications\GenericNotification;
@@ -30,6 +31,7 @@ class PromotionCampaignService
             'in_app' => 0,
             'email' => 0,
             'sms' => 0,
+            'free_rewards' => 0,
             'reminders' => 0,
             'discounts' => 0,
         ];
@@ -46,14 +48,16 @@ class PromotionCampaignService
                     'delivery_strategy' => $delivery['strategy'],
                     'matched_segment' => $campaign->audience_type,
                     'reward_state' => $delivery['reward_state'],
-                    'meta' => [
-                        'reward_id' => $delivery['reward']?->id,
-                        'reward_name' => $delivery['reward']?->reward?->name
-                            ?? $delivery['reward']?->reward?->name_rw,
-                    ],
+                    'meta' => [],
                     'channel_results' => [],
                 ]
             );
+
+            if ($delivery['strategy'] === 'free_reward') {
+                $delivery['reward'] = $this->grantRewardToUser($campaign, $user);
+                $delivery['reward_state'] = $this->resolveRewardState($delivery['reward']);
+                $recipient->reward_state = $delivery['reward_state'];
+            }
 
             $payload = $this->buildPayload($campaign, $user, $recipient, $delivery);
             $channelResults = [];
@@ -110,14 +114,19 @@ class PromotionCampaignService
                 $channelResults['sms'] = 'disabled';
             }
 
+            $recipient->delivery_strategy = $delivery['strategy'];
+            $recipient->meta = $this->buildRecipientMeta($campaign, $delivery, $payload);
             $recipient->channel_results = $channelResults;
             $recipient->save();
 
             $stats['recipients']++;
+            if ($delivery['strategy'] === 'free_reward') {
+                $stats['free_rewards']++;
+            }
             if ($delivery['strategy'] === 'reward_reminder') {
                 $stats['reminders']++;
             }
-            if ($delivery['strategy'] === 'discount') {
+            if (in_array($delivery['strategy'], ['discount', 'discount_rewind'], true)) {
                 $stats['discounts']++;
             }
         }
@@ -167,6 +176,20 @@ class PromotionCampaignService
             return;
         }
 
+        if ($campaign->audience_type === 'users_with_bookings') {
+            $query->whereHas('bookings', function (Builder $builder) use ($campaign) {
+                $this->applyBookingStatusFilter($builder, $campaign);
+            });
+            return;
+        }
+
+        if ($campaign->audience_type === 'users_without_bookings') {
+            $query->whereDoesntHave('bookings', function (Builder $builder) use ($campaign) {
+                $this->applyBookingStatusFilter($builder, $campaign);
+            });
+            return;
+        }
+
         if ($campaign->audience_type === 'booked_service') {
             $serviceIds = collect($campaign->target_service_ids ?? [])->filter()->map(fn ($id) => (int) $id)->filter();
 
@@ -175,9 +198,19 @@ class PromotionCampaignService
                 return;
             }
 
-            $query->whereHas('bookings', function (Builder $builder) use ($serviceIds) {
+            $query->whereHas('bookings', function (Builder $builder) use ($campaign, $serviceIds) {
                 $builder->whereIn('service_id', $serviceIds->all());
+                $this->applyBookingStatusFilter($builder, $campaign);
             });
+        }
+    }
+
+    private function applyBookingStatusFilter(Builder $builder, PromotionCampaign $campaign): void
+    {
+        $status = $campaign->booking_status_filter ?: 'any';
+
+        if ($status !== 'any') {
+            $builder->where('status', $status);
         }
     }
 
@@ -242,9 +275,14 @@ class PromotionCampaignService
     {
         $reward = $this->resolveRelevantReward($campaign, $user);
         $rewardState = $this->resolveRewardState($reward);
-        $strategy = 'standard';
+        $offerType = $this->resolveOfferType($campaign);
+        $strategy = match ($offerType) {
+            'free_reward' => 'free_reward',
+            'discount_rewind' => 'discount_rewind',
+            default => 'standard',
+        };
 
-        if ($campaign->smart_reward_mode) {
+        if ($offerType === 'smart_reward') {
             if ($rewardState === 'unused') {
                 $strategy = 'reward_reminder';
             } elseif ($rewardState === 'used') {
@@ -257,6 +295,15 @@ class PromotionCampaignService
             'reward_state' => $rewardState,
             'reward' => $reward,
         ];
+    }
+
+    private function resolveOfferType(PromotionCampaign $campaign): string
+    {
+        if (!empty($campaign->offer_type)) {
+            return $campaign->offer_type;
+        }
+
+        return $campaign->smart_reward_mode ? 'smart_reward' : 'standard';
     }
 
     private function resolveRelevantReward(PromotionCampaign $campaign, User $user): ?UserReward
@@ -278,15 +325,17 @@ class PromotionCampaignService
         });
 
         if ($unused) {
+            $unused->loadMissing('reward.service');
             return $unused;
         }
 
         $used = $rewards->first(fn (UserReward $reward) => $reward->status === 'used');
         if ($used) {
+            $used->loadMissing('reward.service');
             return $used;
         }
 
-        return $rewards->first();
+        return $rewards->first()?->loadMissing('reward.service');
     }
 
     private function resolveRewardState(?UserReward $reward): string
@@ -319,6 +368,7 @@ class PromotionCampaignService
         $messageRw = $campaign->message_rw;
         $messageEn = $campaign->message_en ?: $campaign->message_rw;
         $messageFr = $campaign->message_fr ?: $campaign->message_rw;
+        $actionUrl = $this->resolveActionUrl($campaign, $delivery);
 
         if ($delivery['strategy'] === 'reward_reminder' && $reward?->reward) {
             $rewardNameRw = $reward->reward->name_rw ?: $reward->reward->name;
@@ -336,16 +386,42 @@ class PromotionCampaignService
             $messageFr .= ' Votre recompense ' . $rewardNameFr . ' est encore disponible.' . $expiryFr;
         }
 
-        if ($delivery['strategy'] === 'discount') {
+        if ($delivery['strategy'] === 'free_reward' && $reward?->reward) {
+            $rewardNameRw = $reward->reward->name_rw ?: $reward->reward->name;
+            $rewardNameEn = $reward->reward->name_en ?: $reward->reward->name;
+            $rewardNameFr = $reward->reward->name_fr ?: $reward->reward->name;
+            $expiryRw = $reward->expires_at ? ' Izarangira ku ' . $reward->expires_at->format('Y-m-d') . '.' : '';
+            $expiryEn = $reward->expires_at ? ' It expires on ' . $reward->expires_at->format('Y-m-d') . '.' : '';
+            $expiryFr = $reward->expires_at ? ' Elle expire le ' . $reward->expires_at->format('Y-m-d') . '.' : '';
+
+            $titleRw .= ' - Impano ya serivisi';
+            $titleEn .= ' - Free reward unlocked';
+            $titleFr .= ' - Recompense gratuite activee';
+            $messageRw .= ' Twongeye kugushyiriraho impano ya ' . $rewardNameRw . '.' . $expiryRw;
+            $messageEn .= ' We unlocked your free ' . $rewardNameEn . ' reward.' . $expiryEn;
+            $messageFr .= ' Nous avons active votre recompense gratuite ' . $rewardNameFr . '.' . $expiryFr;
+        }
+
+        if (in_array($delivery['strategy'], ['discount', 'discount_rewind'], true)) {
             $discountPercent = $campaign->discount_percent ? $campaign->discount_percent . '%' : 'special';
             $discountCode = $campaign->discount_code ? ' Code: ' . $campaign->discount_code . '.' : '';
+            $priceRw = $this->formatDiscountPriceMessage($campaign, 'rw');
+            $priceEn = $this->formatDiscountPriceMessage($campaign, 'en');
+            $priceFr = $this->formatDiscountPriceMessage($campaign, 'fr');
+            $rewardModel = $reward?->reward ?: $campaign->referenceReward;
+            $rewardServiceRw = $rewardModel?->service?->title_rw ?: $rewardModel?->service?->title;
+            $rewardServiceEn = $rewardModel?->service?->title_en ?: $rewardModel?->service?->title;
+            $rewardServiceFr = $rewardModel?->service?->title_fr ?: $rewardModel?->service?->title;
+            $serviceSuffixRw = $rewardServiceRw ? ' kuri ' . $rewardServiceRw : '';
+            $serviceSuffixEn = $rewardServiceEn ? ' for ' . $rewardServiceEn : '';
+            $serviceSuffixFr = $rewardServiceFr ? ' pour ' . $rewardServiceFr : '';
 
-            $titleRw .= ' - Kugabanyirizwa';
-            $titleEn .= ' - Discount for you';
-            $titleFr .= ' - Remise pour vous';
-            $messageRw .= ' Kubera ko wamaze gukoresha impano yawe, twaguteguriye kugabanyirizwa ' . $discountPercent . '.' . $discountCode;
-            $messageEn .= ' Since you already used your reward, we prepared a ' . $discountPercent . ' discount for you.' . $discountCode;
-            $messageFr .= ' Puisque vous avez deja utilise votre recompense, nous vous proposons une remise de ' . $discountPercent . '.' . $discountCode;
+            $titleRw .= $delivery['strategy'] === 'discount_rewind' ? ' - Discount rewind' : ' - Kugabanyirizwa';
+            $titleEn .= $delivery['strategy'] === 'discount_rewind' ? ' - Discount rewind' : ' - Discount for you';
+            $titleFr .= $delivery['strategy'] === 'discount_rewind' ? ' - Reprise remise' : ' - Remise pour vous';
+            $messageRw .= ' Dufite kugabanyirizwa ' . $discountPercent . $serviceSuffixRw . '.' . $priceRw . $discountCode;
+            $messageEn .= ' We prepared a ' . $discountPercent . ' discount' . $serviceSuffixEn . '.' . $priceEn . $discountCode;
+            $messageFr .= ' Nous avons prepare une remise de ' . $discountPercent . $serviceSuffixFr . '.' . $priceFr . $discountCode;
         }
 
         return [
@@ -357,12 +433,12 @@ class PromotionCampaignService
             'message_rw' => $messageRw,
             'message_en' => $messageEn,
             'message_fr' => $messageFr,
-            'action_url' => $campaign->cta_url ?: route('rewards.index'),
+            'action_url' => $actionUrl,
             'action_text' => $campaign->cta_text_rw ?: 'Reba promo',
             'action_text_rw' => $campaign->cta_text_rw ?: 'Reba promo',
             'action_text_en' => $campaign->cta_text_en ?: 'Open offer',
             'action_text_fr' => $campaign->cta_text_fr ?: 'Ouvrir l offre',
-            'type' => $delivery['strategy'] === 'discount' ? 'success' : 'info',
+            'type' => in_array($delivery['strategy'], ['discount', 'discount_rewind', 'free_reward'], true) ? 'success' : 'info',
             'media_url' => $campaign->image,
             'media_type' => $campaign->image ? 'image' : null,
             'campaign_id' => $campaign->id,
@@ -372,5 +448,128 @@ class PromotionCampaignService
             'recipient_language' => $user->language ?: 'rw',
             'notification_type' => 'promotion',
         ];
+    }
+
+    private function resolveActionUrl(PromotionCampaign $campaign, array $delivery): string
+    {
+        if (!empty($campaign->cta_url)) {
+            return $campaign->cta_url;
+        }
+
+        $userReward = $delivery['reward'];
+        $reward = $userReward?->reward ?: $campaign->referenceReward;
+        $serviceId = $reward?->service_id;
+
+        if ($serviceId && in_array($delivery['strategy'], ['reward_reminder', 'free_reward'], true) && $userReward?->id) {
+            return route('bookings.index', [
+                'service' => $serviceId,
+                'reward' => $userReward->id,
+            ]);
+        }
+
+        if ($serviceId) {
+            return route('bookings.index', ['service' => $serviceId]);
+        }
+
+        return route('rewards.index');
+    }
+
+    private function grantRewardToUser(PromotionCampaign $campaign, User $user): ?UserReward
+    {
+        $reward = $campaign->referenceReward;
+
+        if (!$reward) {
+            return null;
+        }
+
+        $days = $reward->expires_after_days ?: 30;
+        $existing = UserReward::query()
+            ->where('user_id', $user->id)
+            ->where('reward_id', $reward->id)
+            ->first();
+
+        $previousStatus = $existing?->status;
+        $previousExpiresAt = $existing?->expires_at;
+
+        $userReward = UserReward::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'reward_id' => $reward->id,
+            ],
+            [
+                'status' => 'unused',
+                'assigned_at' => now(),
+                'used_at' => null,
+                'expires_at' => now()->addDays($days),
+            ]
+        );
+
+        if ($existing) {
+            RewardRewind::create([
+                'user_reward_id' => $userReward->id,
+                'user_id' => $user->id,
+                'reward_id' => $reward->id,
+                'admin_id' => $campaign->created_by,
+                'action' => 'campaign_rewind',
+                'previous_status' => $previousStatus,
+                'new_status' => $userReward->status,
+                'previous_expires_at' => $previousExpiresAt,
+                'new_expires_at' => $userReward->expires_at,
+                'notes' => 'Promotion campaign reward rewind: ' . $campaign->name,
+                'meta' => [
+                    'campaign_id' => $campaign->id,
+                    'offer_type' => $this->resolveOfferType($campaign),
+                ],
+            ]);
+        }
+
+        return $userReward->loadMissing('reward.service');
+    }
+
+    private function buildRecipientMeta(PromotionCampaign $campaign, array $delivery, array $payload): array
+    {
+        $userReward = $delivery['reward'];
+        $reward = $userReward?->reward ?: $campaign->referenceReward;
+        $service = $reward?->service;
+
+        return [
+            'offer_type' => $this->resolveOfferType($campaign),
+            'reward_id' => $reward?->id,
+            'reward_name' => $reward?->name_rw ?: $reward?->name,
+            'service_id' => $service?->id,
+            'service_title' => $service?->title_rw ?: $service?->title,
+            'user_reward_id' => $userReward?->id,
+            'reward_expires_at' => $userReward?->expires_at?->toIso8601String(),
+            'discount_percent' => $campaign->discount_percent,
+            'discount_code' => $campaign->discount_code,
+            'original_price_rwf' => $campaign->original_price_rwf,
+            'discounted_price_rwf' => $campaign->discounted_price_rwf,
+            'rendered_payload' => [
+                'title_rw' => $payload['title_rw'] ?? null,
+                'title_en' => $payload['title_en'] ?? null,
+                'title_fr' => $payload['title_fr'] ?? null,
+                'message_rw' => $payload['message_rw'] ?? null,
+                'message_en' => $payload['message_en'] ?? null,
+                'message_fr' => $payload['message_fr'] ?? null,
+                'action_url' => $payload['action_url'] ?? null,
+                'action_text_rw' => $payload['action_text_rw'] ?? null,
+                'action_text_en' => $payload['action_text_en'] ?? null,
+                'action_text_fr' => $payload['action_text_fr'] ?? null,
+                'type' => $payload['type'] ?? null,
+            ],
+        ];
+    }
+
+    private function formatDiscountPriceMessage(PromotionCampaign $campaign, string $locale): string
+    {
+        if (!$campaign->original_price_rwf || !$campaign->discounted_price_rwf) {
+            return '';
+        }
+
+        return match ($locale) {
+            'rw' => ' Igiciro cyavuye kuri ' . number_format($campaign->original_price_rwf) . ' FRW kijya kuri ' . number_format($campaign->discounted_price_rwf) . ' FRW.',
+            'fr' => ' Le prix est passe de ' . number_format($campaign->original_price_rwf) . ' FRW a ' . number_format($campaign->discounted_price_rwf) . ' FRW.',
+            default => ' The price moved from ' . number_format($campaign->original_price_rwf) . ' FRW to ' . number_format($campaign->discounted_price_rwf) . ' FRW.',
+        };
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Reward;
+use App\Models\Service;
 use App\Models\User;
 use App\Models\UserReward;
 use App\Models\UserActivity;
@@ -13,7 +14,11 @@ class RewardService
 {
     public function assignWelcomeRewards(User $user): Collection
     {
-        $rewards = $this->ensureDefaultRewards();
+        $rewards = app(WelcomeOfferService::class)->selectedRewards();
+
+        if ($rewards->isEmpty()) {
+            return collect();
+        }
 
         $assigned = collect();
 
@@ -46,14 +51,14 @@ class RewardService
             ]);
 
             $user->notify(new GenericNotification([
-                'title' => 'Impano z\'ubuntu ku bakiriya bashya',
-                'title_rw' => 'Impano z\'ubuntu ku bakiriya bashya',
-                'title_en' => 'FREE services for new users',
-                'title_fr' => 'Services gratuits pour nouveaux utilisateurs',
-                'message' => '🎉 Muraho neza! Mwakiriye serivisi z\'ubuntu: ' . $namesRw . '.',
-                'message_rw' => '🎉 Muraho neza! Mwakiriye serivisi z\'ubuntu: ' . $namesRw . '.',
-                'message_en' => '🎉 Congratulations! You received free services: ' . $namesEn . '.',
-                'message_fr' => '🎉 Felicitations ! Vous avez recu des services gratuits : ' . $namesFr . '.',
+                'title' => 'Free services zatoranyijwe kuri konti yawe',
+                'title_rw' => 'Free services zatoranyijwe kuri konti yawe',
+                'title_en' => 'Admin-selected free services for your account',
+                'title_fr' => 'Services gratuits choisis pour votre compte',
+                'message' => '🎉 Mwakiriye free services zatoranyijwe: ' . $namesRw . '.',
+                'message_rw' => '🎉 Mwakiriye free services zatoranyijwe: ' . $namesRw . '.',
+                'message_en' => '🎉 Congratulations! You received admin-selected free services: ' . $namesEn . '.',
+                'message_fr' => '🎉 Felicitations ! Vous avez recu les services gratuits choisis : ' . $namesFr . '.',
                 'action_url' => route('rewards.index'),
                 'action_text' => 'Reba impano',
                 'action_text_rw' => 'Reba impano',
@@ -74,6 +79,7 @@ class RewardService
         $graphicsVideoPath = '/media/rewards/graphics-printing.mp4';
         $graphicsVideoFullPath = public_path(ltrim($graphicsVideoPath, '/'));
         $graphicsVideoAvailable = file_exists($graphicsVideoFullPath);
+        $serviceMap = $this->defaultRewardServiceMap();
 
         $defaults = [
             [
@@ -86,6 +92,7 @@ class RewardService
                 'description_rw' => 'Ifoto na videwo by\'ubuntu byongera ingufu ku bikorwa byawe.',
                 'description_en' => 'Free photography and videography session to elevate your brand story.',
                 'description_fr' => 'Seance photo et video gratuite pour sublimer votre marque.',
+                'service_id' => $serviceMap['photography-videography'] ?? null,
                 'image' => 'https://source.unsplash.com/1200x800/?photography,videography',
                 'expires_after_days' => 45,
             ],
@@ -99,6 +106,7 @@ class RewardService
                 'description_rw' => 'Igishushanyo cy\'ubuntu n\'igerageza ry\'icapiro ku mushinga wawe.',
                 'description_en' => 'Free graphic design and print-ready layout for your campaign.',
                 'description_fr' => 'Design graphique gratuit et preparation a l\'impression.',
+                'service_id' => $serviceMap['graphics-printing'] ?? null,
                 'image' => $graphicsVideoAvailable
                     ? $graphicsVideoPath
                     : 'https://source.unsplash.com/1200x800/?graphic-design,printing',
@@ -114,6 +122,7 @@ class RewardService
                 'description_rw' => 'Gutunganya mu maso k\'umwuga ku mafoto cyangwa ibirori.',
                 'description_en' => 'Professional makeup session for shoots and events.',
                 'description_fr' => 'Seance de maquillage professionnelle pour shootings et evenements.',
+                'service_id' => $serviceMap['make-up'] ?? null,
                 'image' => 'https://source.unsplash.com/1200x800/?makeup,artist',
                 'expires_after_days' => 45,
             ],
@@ -127,6 +136,7 @@ class RewardService
                 'description_rw' => 'Igenamigambi ry\'ubuntu rya software igufasha gutangiza igitekerezo.',
                 'description_en' => 'Free software discovery session and product roadmap.',
                 'description_fr' => 'Session gratuite de decouverte et feuille de route logicielle.',
+                'service_id' => $serviceMap['software-development'] ?? null,
                 'image' => 'https://source.unsplash.com/1200x800/?software,development',
                 'expires_after_days' => 60,
             ],
@@ -145,6 +155,10 @@ class RewardService
                 }
             }
 
+            if (empty($reward->service_id) && !empty($rewardData['service_id'])) {
+                $updates['service_id'] = $rewardData['service_id'];
+            }
+
             if ($reward->slug === 'graphics-printing-design' && $graphicsVideoAvailable && $reward->image !== $graphicsVideoPath) {
                 $updates['image'] = $graphicsVideoPath;
             } elseif (empty($reward->image) && !empty($rewardData['image'])) {
@@ -161,6 +175,42 @@ class RewardService
 
             return $reward;
         });
+    }
+
+    private function defaultRewardServiceMap(): array
+    {
+        return Service::query()
+            ->where(function ($query) {
+                $query->whereNull('parent_service_id')
+                    ->orWhereHas('parentService');
+            })
+            ->get(['id', 'title', 'service_key'])
+            ->reduce(function (array $carry, Service $service) {
+                if (!empty($service->service_key)) {
+                    $carry[$service->service_key] = $service->id;
+                }
+
+                $titleKey = match ($service->title) {
+                    'Photography & Videography' => 'photography-videography',
+                    'Graphics & Printing Design' => 'graphics-printing',
+                    'Make Up' => 'make-up',
+                    'Other Services' => 'other-services',
+                    'Software Development' => 'software-development',
+                    'Website Development' => 'software-development',
+                    'Sound System' => 'sound-system',
+                    'Funerals' => 'funerals',
+                    'Live Streaming' => 'live-streaming',
+                    'Drone Services' => 'drone-services',
+                    'Real Estate Services' => 'real-estate',
+                    default => null,
+                };
+
+                if ($titleKey) {
+                    $carry[$titleKey] = $service->id;
+                }
+
+                return $carry;
+            }, []);
     }
 
     private function notifyAdmins(User $user, Collection $assigned): void

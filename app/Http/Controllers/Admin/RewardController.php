@@ -5,24 +5,119 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Reward;
 use App\Models\RewardRewind;
+use App\Models\Service;
 use App\Models\UserReward;
 use App\Models\UserActivity;
 use App\Notifications\GenericNotification;
-use App\Services\RewardService;
+use App\Services\WelcomeOfferService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class RewardController extends Controller
 {
+    private function featuredServiceKeys(): array
+    {
+        return [
+            'photography-videography',
+            'graphics-printing',
+            'make-up',
+            'other-services',
+        ];
+    }
+
+    private function featuredSubServiceOrder(): array
+    {
+        return [
+            'photography-videography' => [
+                'weddings',
+                'personal-sessions',
+                'save-the-date-sessions',
+                'graduation-sessions',
+                'birthday-sessions',
+                'adventure-sessions',
+                'maternity-sessions',
+                'festive-sessions',
+            ],
+            'graphics-printing' => [
+                'banner-printing',
+                'invitation-printing',
+                'digital-printing',
+                'billboards',
+                'pull-ups-cards',
+                'id-cards',
+                'business-cards',
+                'flyers-printing',
+                'embroidery',
+                'logo-design',
+                'certification',
+                'backdrops',
+            ],
+            'other-services' => [
+                'live-streaming',
+                'drone-services',
+                'real-estate',
+                'sound-system',
+                'software-development',
+                'funerals',
+            ],
+        ];
+    }
+
     public function index()
     {
-        app(RewardService::class)->ensureDefaultRewards();
+        $serviceOptions = Service::query()
+            ->with('parentService:id,title,title_rw,title_en,title_fr,service_key')
+            ->where(function ($query) {
+                $query->whereNull('parent_service_id')
+                    ->orWhereHas('parentService');
+            })
+            ->get(['id', 'title', 'title_rw', 'title_en', 'title_fr', 'service_key', 'parent_service_id'])
+            ->sortBy(function (Service $service) {
+                $parentTitle = $service->parentService?->title ?? $service->title;
+
+                return sprintf('%s::%s', $parentTitle, $service->title);
+            })
+            ->values()
+            ->map(function (Service $service) {
+                return [
+                    'id' => $service->id,
+                    'title' => $service->title,
+                    'title_rw' => $service->title_rw,
+                    'title_en' => $service->title_en,
+                    'title_fr' => $service->title_fr,
+                    'service_key' => $service->service_key,
+                    'parent_service_id' => $service->parent_service_id,
+                    'parent_service_key' => $service->parentService?->service_key,
+                    'parent_title' => $service->parentService?->title,
+                    'parent_title_rw' => $service->parentService?->title_rw,
+                ];
+            });
+
+        $parentOrder = array_flip($this->featuredServiceKeys());
+        $subServiceOrder = $this->featuredSubServiceOrder();
 
         return Inertia::render('Admin/Rewards/Index', [
-            'rewards' => Reward::latest()->get(),
-            'userRewards' => UserReward::with(['user', 'reward'])->latest()->take(200)->get()->map(function (UserReward $userReward) {
+            'rewards' => Reward::with('service')->latest()->get(),
+            'serviceOptions' => $serviceOptions,
+            'subServiceOptions' => $serviceOptions
+                ->filter(fn (array $service) => !empty($service['parent_service_id']))
+                ->sortBy(function (array $service) use ($parentOrder, $subServiceOrder) {
+                    $parentKey = $service['parent_service_key'] ?? null;
+                    $serviceKey = $service['service_key'] ?? null;
+                    $subOrder = array_flip($subServiceOrder[$parentKey] ?? []);
+
+                    return sprintf(
+                        '%04d::%04d::%s',
+                        $parentOrder[$parentKey] ?? 999,
+                        $subOrder[$serviceKey] ?? 999,
+                        $service['title']
+                    );
+                })
+                ->values(),
+            'userRewards' => UserReward::with(['user', 'reward.service'])->latest()->take(200)->get()->map(function (UserReward $userReward) {
                 return [
                     'id' => $userReward->id,
                     'status' => $userReward->status,
@@ -34,7 +129,7 @@ class RewardController extends Controller
                     'reward' => $userReward->reward,
                 ];
             }),
-            'rewinds' => RewardRewind::with(['user', 'reward', 'admin'])->latest()->take(40)->get()->map(function (RewardRewind $rewind) {
+            'rewinds' => RewardRewind::with(['user', 'reward.service', 'admin'])->latest()->take(40)->get()->map(function (RewardRewind $rewind) {
                 return [
                     'id' => $rewind->id,
                     'action' => $rewind->action,
@@ -49,7 +144,77 @@ class RewardController extends Controller
                     'admin' => $rewind->admin,
                 ];
             }),
+            'welcomeOffer' => app(WelcomeOfferService::class)->forFrontend(),
         ]);
+    }
+
+    public function updateWelcomeOffer(Request $request)
+    {
+        $validated = $request->validate([
+            'discount_cards' => 'nullable|array',
+            'discount_cards.*.title_rw' => 'required|string|max:255',
+            'discount_cards.*.title_en' => 'nullable|string|max:255',
+            'discount_cards.*.title_fr' => 'nullable|string|max:255',
+            'discount_cards.*.service_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('services', 'id')->where(fn ($query) => $query->whereNotNull('parent_service_id')),
+            ],
+            'discount_cards.*.discount_percent' => 'nullable|integer|min:0|max:100',
+            'discount_cards.*.discount_code' => 'nullable|string|max:255',
+            'discount_cards.*.original_price_rwf' => 'nullable|integer|min:0',
+            'discount_cards.*.discounted_price_rwf' => 'nullable|integer|min:0',
+            'selected_reward_ids' => 'nullable|array',
+            'selected_reward_ids.*' => 'integer|exists:rewards,id',
+        ]);
+
+        $discountCardErrors = [];
+
+        foreach ($validated['discount_cards'] ?? [] as $index => $card) {
+            $originalPrice = $card['original_price_rwf'] ?? null;
+            $discountedPrice = $card['discounted_price_rwf'] ?? null;
+            $hasOfferValue = ($card['discount_percent'] ?? null) !== null
+                || filled($card['discount_code'] ?? null)
+                || $originalPrice !== null
+                || $discountedPrice !== null;
+
+            if (!$hasOfferValue) {
+                $discountCardErrors["discount_cards.$index.discount_percent"] = 'Add a discount value, code, or prices for this card.';
+            }
+
+            if (($originalPrice === null) !== ($discountedPrice === null)) {
+                $discountCardErrors["discount_cards.$index.original_price_rwf"] = 'Fill both original and discounted prices together.';
+            }
+
+            if ($originalPrice !== null && $discountedPrice !== null && (int) $discountedPrice >= (int) $originalPrice) {
+                $discountCardErrors["discount_cards.$index.discounted_price_rwf"] = 'Discounted price must be lower than the original price.';
+            }
+        }
+
+        if ($discountCardErrors !== []) {
+            throw ValidationException::withMessages($discountCardErrors);
+        }
+
+        app(WelcomeOfferService::class)->updateConfig($validated);
+
+        UserActivity::create([
+            'user_id' => $request->user()->id,
+            'action' => 'welcome_offer_updated',
+            'meta' => [
+                'discount_card_count' => count($validated['discount_cards'] ?? []),
+                'discount_cards' => collect($validated['discount_cards'] ?? [])
+                    ->map(fn (array $card) => [
+                        'title_rw' => $card['title_rw'] ?? null,
+                        'service_id' => $card['service_id'] ?? null,
+                        'discount_percent' => $card['discount_percent'] ?? null,
+                    ])
+                    ->values()
+                    ->all(),
+                'selected_reward_ids' => $validated['selected_reward_ids'] ?? [],
+            ],
+        ]);
+
+        return back()->with('success', 'Welcome offer updated.');
     }
 
     public function store(Request $request)
@@ -59,6 +224,7 @@ class RewardController extends Controller
             'name_en' => 'nullable|string|max:255',
             'name_fr' => 'nullable|string|max:255',
             'slug' => 'required|string|max:255|unique:rewards,slug',
+            'service_id' => 'nullable|integer|exists:services,id',
             'description_rw' => 'nullable|string',
             'description_en' => 'nullable|string',
             'description_fr' => 'nullable|string',
@@ -79,6 +245,7 @@ class RewardController extends Controller
             'name_en' => $validated['name_en'] ?? null,
             'name_fr' => $validated['name_fr'] ?? null,
             'slug' => $validated['slug'],
+            'service_id' => $validated['service_id'] ?? null,
             'description' => $validated['description_rw'] ?? null,
             'description_rw' => $validated['description_rw'] ?? null,
             'description_en' => $validated['description_en'] ?? null,
@@ -109,6 +276,7 @@ class RewardController extends Controller
             'name_en' => 'nullable|string|max:255',
             'name_fr' => 'nullable|string|max:255',
             'slug' => 'required|string|max:255|unique:rewards,slug,' . $reward->id,
+            'service_id' => 'nullable|integer|exists:services,id',
             'description_rw' => 'nullable|string',
             'description_en' => 'nullable|string',
             'description_fr' => 'nullable|string',
@@ -131,6 +299,7 @@ class RewardController extends Controller
             'name_en' => $validated['name_en'] ?? null,
             'name_fr' => $validated['name_fr'] ?? null,
             'slug' => $validated['slug'],
+            'service_id' => $validated['service_id'] ?? null,
             'description' => $validated['description_rw'] ?? null,
             'description_rw' => $validated['description_rw'] ?? null,
             'description_en' => $validated['description_en'] ?? null,

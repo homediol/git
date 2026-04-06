@@ -17,6 +17,16 @@ class SiteSettings extends Model
         'facebook_url',
         'x_url',
         'contact_email',
+        'featured_bundle_badge_rw',
+        'featured_bundle_badge_en',
+        'featured_bundle_badge_fr',
+        'featured_bundle_image',
+        'featured_bundle_title_rw',
+        'featured_bundle_title_en',
+        'featured_bundle_title_fr',
+        'featured_bundle_description_rw',
+        'featured_bundle_description_en',
+        'featured_bundle_description_fr',
     ];
 
     public static function get($key, $default = null)

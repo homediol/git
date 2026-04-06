@@ -6,7 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
 {
-    protected $fillable = ['title', 'content', 'category', 'image', 'video'];
+    protected $fillable = [
+        'title',
+        'title_rw',
+        'title_en',
+        'title_fr',
+        'content',
+        'content_rw',
+        'content_en',
+        'content_fr',
+        'category',
+        'category_rw',
+        'category_en',
+        'category_fr',
+        'image',
+        'video',
+    ];
 
     public function comments()
     {

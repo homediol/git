@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\RewardService;
+use App\Services\WelcomeOfferService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -64,6 +65,7 @@ class GoogleController extends Controller
 
         if ($isNew) {
             app(RewardService::class)->assignWelcomeRewards($user);
+            app(WelcomeOfferService::class)->notifyDiscount($user);
         }
 
         return redirect()->intended(route('dashboard', absolute: false))->with('show_promo', true);

@@ -26,7 +26,7 @@ class PromotionCampaignController extends Controller
             'cta_text_fr' => 'nullable|string|max:255',
             'cta_url' => 'nullable|string|max:255',
             'image' => 'nullable|file|max:512000',
-            'audience_type' => 'required|in:all_users,new_users,specific_users,booked_service',
+            'audience_type' => 'required|in:all_users,new_users,specific_users,booked_service,users_with_bookings,users_without_bookings',
             'user_age_segment' => 'nullable|in:all,new,existing',
             'new_user_window_days' => 'nullable|integer|min:1|max:365',
             'target_user_ids' => 'nullable|array',
@@ -34,15 +34,22 @@ class PromotionCampaignController extends Controller
             'specific_users' => 'nullable|string',
             'target_service_ids' => 'nullable|array',
             'target_service_ids.*' => 'integer|exists:services,id',
+            'booking_status_filter' => 'nullable|in:any,pending,approved,rejected',
             'reward_filter' => 'nullable|in:any,unused,used,expired,none',
             'reference_reward_id' => 'nullable|integer|exists:rewards,id',
+            'offer_type' => 'nullable|in:standard,smart_reward,free_reward,discount_rewind',
             'smart_reward_mode' => 'nullable|boolean',
             'discount_percent' => 'nullable|integer|min:1|max:100',
             'discount_code' => 'nullable|string|max:50',
+            'original_price_rwf' => 'nullable|integer|min:1',
+            'discounted_price_rwf' => 'nullable|integer|min:1',
             'send_in_app' => 'nullable|boolean',
             'send_email' => 'nullable|boolean',
             'send_sms' => 'nullable|boolean',
         ]);
+
+        $offerType = $validated['offer_type']
+            ?? ($request->boolean('smart_reward_mode') ? 'smart_reward' : 'standard');
 
         if (
             !$request->boolean('send_in_app')
@@ -79,6 +86,27 @@ class PromotionCampaignController extends Controller
             ]);
         }
 
+        if ($offerType === 'free_reward' && empty($validated['reference_reward_id'])) {
+            throw ValidationException::withMessages([
+                'reference_reward_id' => 'Choose the free reward that should be granted or rewound.',
+            ]);
+        }
+
+        $originalPrice = $validated['original_price_rwf'] ?? null;
+        $discountedPrice = $validated['discounted_price_rwf'] ?? null;
+
+        if (($originalPrice && !$discountedPrice) || (!$originalPrice && $discountedPrice)) {
+            throw ValidationException::withMessages([
+                'original_price_rwf' => 'Fill both original and discounted prices together.',
+            ]);
+        }
+
+        if ($originalPrice && $discountedPrice && $discountedPrice >= $originalPrice) {
+            throw ValidationException::withMessages([
+                'discounted_price_rwf' => 'Discounted price must be lower than the original price.',
+            ]);
+        }
+
         if ($request->hasFile('image')) {
             $this->ensureImageUpload($request, 'image');
             $path = $request->file('image')->store('promotion-campaigns', 'public');
@@ -104,11 +132,15 @@ class PromotionCampaignController extends Controller
             'target_user_ids' => $targetIds,
             'target_emails' => $targetEmails,
             'target_service_ids' => $validated['target_service_ids'] ?? [],
+            'booking_status_filter' => $validated['booking_status_filter'] ?? 'any',
             'reward_filter' => $validated['reward_filter'] ?? 'any',
             'reference_reward_id' => $validated['reference_reward_id'] ?? null,
-            'smart_reward_mode' => $request->boolean('smart_reward_mode'),
+            'offer_type' => $offerType,
+            'smart_reward_mode' => $offerType === 'smart_reward',
             'discount_percent' => $validated['discount_percent'] ?? null,
             'discount_code' => $validated['discount_code'] ?? null,
+            'original_price_rwf' => $originalPrice,
+            'discounted_price_rwf' => $discountedPrice,
             'send_in_app' => $request->boolean('send_in_app'),
             'send_email' => $request->boolean('send_email'),
             'send_sms' => $request->boolean('send_sms'),

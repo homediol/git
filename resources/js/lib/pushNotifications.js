@@ -3,17 +3,28 @@ import { registerAppServiceWorker } from '@/lib/pwaInstall';
 
 const promptDismissKey = 'pavona_push_prompt_dismissed';
 const promptStateEventName = 'pavona:push-prompt-state-change';
-export const PUSH_PROMPT_REMINDER_MS = 120000;
+export const PUSH_PROMPT_REMINDER_MS = 900000;
 
 let messagingInstance = null;
-export function getPushPromptDismissed() {
+
+function getPushPromptSnoozedUntil() {
     if (typeof window === 'undefined') {
-        return false;
+        return 0;
     }
 
     const snoozedUntil = Number(window.localStorage.getItem(promptDismissKey) || 0);
 
     if (!Number.isFinite(snoozedUntil) || snoozedUntil <= 0) {
+        return 0;
+    }
+
+    return snoozedUntil;
+}
+
+export function getPushPromptDismissed() {
+    const snoozedUntil = getPushPromptSnoozedUntil();
+
+    if (snoozedUntil <= 0) {
         return false;
     }
 
@@ -23,6 +34,16 @@ export function getPushPromptDismissed() {
     }
 
     return true;
+}
+
+export function getPushPromptReminderRemainingMs() {
+    const snoozedUntil = getPushPromptSnoozedUntil();
+
+    if (snoozedUntil <= 0) {
+        return 0;
+    }
+
+    return Math.max(0, snoozedUntil - Date.now());
 }
 
 export function setPushPromptDismissed(value) {

@@ -9,10 +9,13 @@ use App\Models\Post;
 use App\Models\Contact;
 use App\Models\SiteSettings;
 use App\Models\Advertisement;
-use App\Services\RewardService;
+use App\Services\WelcomeOfferService;
+use Database\Seeders\BlogContentSeeder;
+use Database\Seeders\PortfolioShowcaseSeeder;
 use Database\Seeders\ServiceCatalogSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 /**
@@ -21,14 +24,51 @@ use Inertia\Inertia;
  */
 class HomeController extends Controller
 {
+    private function featuredSubServiceOrder(): array
+    {
+        return [
+            'photography-videography' => [
+                'weddings',
+                'personal-sessions',
+                'save-the-date-sessions',
+                'graduation-sessions',
+                'birthday-sessions',
+                'adventure-sessions',
+                'maternity-sessions',
+                'festive-sessions',
+            ],
+            'graphics-printing' => [
+                'banner-printing',
+                'invitation-printing',
+                'digital-printing',
+                'billboards',
+                'pull-ups-cards',
+                'id-cards',
+                'business-cards',
+                'flyers-printing',
+                'embroidery',
+                'logo-design',
+                'certification',
+                'backdrops',
+            ],
+            'other-services' => [
+                'live-streaming',
+                'drone-services',
+                'real-estate',
+                'sound-system',
+                'software-development',
+                'funerals',
+            ],
+        ];
+    }
+
     private function featuredServiceKeys(): array
     {
         return [
             'photography-videography',
             'graphics-printing',
             'make-up',
-            'software-development',
-            'sound-system',
+            'other-services',
         ];
     }
 
@@ -38,8 +78,7 @@ class HomeController extends Controller
             'Photography & Videography',
             'Graphics & Printing Design',
             'Make Up',
-            'Software Development',
-            'Sound System',
+            'Other Services',
         ];
     }
 
@@ -97,13 +136,41 @@ class HomeController extends Controller
             }
         }
 
+        $photoService = $featuredServices->firstWhere('service_key', 'photography-videography');
         $graphicsService = $featuredServices->firstWhere('service_key', 'graphics-printing');
+        $otherServices = $featuredServices->firstWhere('service_key', 'other-services');
 
-        if (!$graphicsService) {
+        if (!$photoService || !$graphicsService || !$otherServices) {
             return true;
         }
 
-        if ($graphicsService->subServices()->count() < 13) {
+        if ($otherServices->subServices()->count() < count($this->featuredSubServiceOrder()['other-services'])) {
+            return true;
+        }
+
+        foreach ($this->featuredSubServiceOrder() as $serviceKey => $expectedSubServiceKeys) {
+            $service = $featuredServices->firstWhere('service_key', $serviceKey);
+
+            if (!$service) {
+                return true;
+            }
+
+            $existingKeys = $service->subServices()->pluck('service_key')->filter()->all();
+
+            if (!empty(array_diff($expectedSubServiceKeys, $existingKeys))) {
+                return true;
+            }
+        }
+
+        if ($photoService->subServices()->count() < count($this->featuredSubServiceOrder()['photography-videography'])) {
+            return true;
+        }
+
+        if ($graphicsService->subServices()->count() < count($this->featuredSubServiceOrder()['graphics-printing'])) {
+            return true;
+        }
+
+        if ($otherServices->subServices()->count() < count($this->featuredSubServiceOrder()['other-services'])) {
             return true;
         }
 
@@ -111,12 +178,96 @@ class HomeController extends Controller
             return false;
         }
 
-        return $graphicsService->subServices()
+        if ($photoService->subServices()
+            ->where(function ($query) {
+                $query->whereNull('title_rw')
+                    ->orWhereNull('description_rw');
+            })
+            ->exists()) {
+            return true;
+        }
+
+        if ($graphicsService->subServices()
+            ->where(function ($query) {
+                $query->whereNull('title_rw')
+                    ->orWhereNull('description_rw');
+            })
+            ->exists()) {
+            return true;
+        }
+
+        return $otherServices->subServices()
             ->where(function ($query) {
                 $query->whereNull('title_rw')
                     ->orWhereNull('description_rw');
             })
             ->exists();
+    }
+
+    private function orderedSubServices(Service $service)
+    {
+        $subServices = $service->subServices()->get();
+
+        if (!Schema::hasColumn('services', 'service_key')) {
+            return $subServices->sortBy('title')->values();
+        }
+
+        $order = array_flip($this->featuredSubServiceOrder()[$service->service_key] ?? []);
+
+        if ($order === []) {
+            return $subServices->sortBy('title')->values();
+        }
+
+        return $subServices->sortBy(function (Service $subService) use ($order) {
+            $position = $order[$subService->service_key] ?? 999;
+
+            return sprintf('%04d::%s', $position, $subService->title);
+        })->values();
+    }
+
+    private function seedDefaultPortfolioIfMissing(): void
+    {
+        $portfolioCount = Portfolio::count();
+        $titles = Portfolio::query()->pluck('title');
+        $hasPlaceholderTitles = $titles->contains(fn ($title) => in_array(Str::lower(trim((string) $title)), [
+            'pavona production',
+            'pavona studio',
+            'pavona product',
+        ], true));
+        $hasLegacySampleTitles = $titles->contains(fn ($title) => in_array((string) $title, [
+            'TechStart Logo & Brand Identity',
+            'Corporate Event Banners',
+            'Restaurant Menu & Brochures',
+            'Company Vehicle Branding',
+            'Corporate Business Cards',
+            'Team Uniform T-Shirts',
+            'Product Packaging Stickers',
+            'Corporate Award Plaques',
+            'Promotional Coffee Mugs',
+        ], true));
+
+        if ($portfolioCount < 6 || $hasPlaceholderTitles || $hasLegacySampleTitles) {
+            (new PortfolioShowcaseSeeder())->run();
+        }
+    }
+
+    private function seedDefaultBlogIfMissing(): void
+    {
+        $postCount = Post::count();
+        $titles = Post::query()->pluck('title');
+        $hasPlaceholderTitle = $titles->contains(fn ($title) => Str::contains(Str::lower((string) $title), 'grgraphic'));
+        $hasLegacySampleTitles = $titles->contains(fn ($title) => in_array((string) $title, [
+            'The Future of Web Development in 2024',
+            'Best Practices for Mobile App Design',
+            'Laravel 11: What\'s New and Exciting',
+            'Building Scalable APIs with Laravel',
+            'React vs Vue: Choosing the Right Framework',
+            'SEO Optimization for Modern Web Apps',
+        ], true));
+
+        if ($postCount < 4 || $hasPlaceholderTitle || $hasLegacySampleTitles) {
+            (new BlogContentSeeder())->run();
+        }
     }
 
     private function getFeaturedServices()
@@ -153,6 +304,8 @@ class HomeController extends Controller
     public function index()
     {
         $this->seedDefaultServicesIfMissing();
+        $this->seedDefaultPortfolioIfMissing();
+        $this->seedDefaultBlogIfMissing();
         $featuredServices = $this->getFeaturedServices();
 
         if ($featuredServices->isEmpty()) {
@@ -160,28 +313,15 @@ class HomeController extends Controller
             $featuredServices = $this->getFeaturedServices();
         }
 
-        $promoRewards = app(RewardService::class)->ensureDefaultRewards()->map(function ($reward) {
-            return [
-                'id' => $reward->id,
-                'name' => $reward->name,
-                'name_rw' => $reward->name_rw,
-                'name_en' => $reward->name_en,
-                'name_fr' => $reward->name_fr,
-                'description' => $reward->description,
-                'description_rw' => $reward->description_rw,
-                'description_en' => $reward->description_en,
-                'description_fr' => $reward->description_fr,
-                'image' => $reward->image,
-                'slug' => $reward->slug,
-            ];
-        })->values();
+        $welcomeOffer = app(WelcomeOfferService::class)->forFrontend(auth()->user());
+        $promoRewards = collect($welcomeOffer['rewards'] ?? [])->values();
 
         return Inertia::render('Home', [
             'services' => $featuredServices,
-            'portfolios' => Portfolio::take(6)->get(),
-            'teams' => Team::orderBy('order')->get(),
+            'portfolios' => Portfolio::latest()->take(6)->get(),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'promoRewards' => $promoRewards,
+            'welcomeOffer' => $welcomeOffer,
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),
                 'main_bg' => SiteSettings::get('main_bg'),
@@ -191,13 +331,23 @@ class HomeController extends Controller
     }
 
     /**
-     * Display about page with team members
+     * Display about page with studio highlights
      * @return \Inertia\Response
      */
     public function about()
     {
+        $this->seedDefaultServicesIfMissing();
+        $this->seedDefaultPortfolioIfMissing();
+
+        $teamCount = Team::count();
+
         return Inertia::render('About', [
-            'teamMembers' => Team::orderBy('order')->get(),
+            'featuredWork' => Portfolio::latest()->take(4)->get(),
+            'studioStats' => [
+                'projects' => Portfolio::count(),
+                'services' => Service::whereNull('parent_service_id')->count(),
+                'team' => $teamCount,
+            ],
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),
@@ -252,6 +402,7 @@ class HomeController extends Controller
 
         return Inertia::render('Services', [
             'services' => $services,
+            'welcomeOffer' => app(WelcomeOfferService::class)->forFrontend(auth()->user()),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),
@@ -270,7 +421,8 @@ class HomeController extends Controller
 
         return Inertia::render('Services/Show', [
             'service' => $service,
-            'subServices' => $service->subServices()->latest()->get(),
+            'subServices' => $this->orderedSubServices($service),
+            'welcomeOffer' => app(WelcomeOfferService::class)->forFrontend(auth()->user()),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),
@@ -294,6 +446,7 @@ class HomeController extends Controller
         return Inertia::render('Services/SubServiceShow', [
             'service' => $service,
             'subService' => $subService,
+            'welcomeOffer' => app(WelcomeOfferService::class)->forFrontend(auth()->user()),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'settings' => [
                 'header_bg' => SiteSettings::get('header_bg'),
@@ -310,7 +463,9 @@ class HomeController extends Controller
      */
     public function portfolio(Request $request)
     {
-        $query = Portfolio::query();
+        $this->seedDefaultPortfolioIfMissing();
+
+        $query = Portfolio::query()->latest();
         
         // Filter by category if provided
         if ($request->category) {
@@ -319,7 +474,12 @@ class HomeController extends Controller
         
         return Inertia::render('Portfolio', [
             'portfolios' => $query->get(),
-            'categories' => Portfolio::distinct()->pluck('category'),
+            'categories' => Portfolio::query()
+                ->select('category', 'category_rw', 'category_en', 'category_fr')
+                ->orderBy('category')
+                ->get()
+                ->unique('category')
+                ->values(),
             'selectedCategory' => $request->category,
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),
             'settings' => [
@@ -381,6 +541,8 @@ class HomeController extends Controller
      */
     public function blog()
     {
+        $this->seedDefaultBlogIfMissing();
+
         return Inertia::render('Blog/Index', [
             'posts' => Post::latest()->paginate(9),
             'advertisements' => Advertisement::where('active', true)->orderBy('order')->get(),

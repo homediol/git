@@ -27,7 +27,7 @@ class BookingController extends Controller
         $user = $request->user();
 
         $availableRewards = $user->userRewards()
-            ->with('reward')
+            ->with('reward.service')
             ->latest()
             ->get()
             ->filter(fn (UserReward $userReward) => $this->rewardIsAvailable($userReward))
@@ -87,7 +87,7 @@ class BookingController extends Controller
             }
 
             $userReward = $user->userRewards()
-                ->with('reward')
+                ->with('reward.service')
                 ->find($validated['user_reward_id']);
 
             if (
@@ -208,8 +208,7 @@ class BookingController extends Controller
             'photography-videography',
             'graphics-printing',
             'make-up',
-            'software-development',
-            'sound-system',
+            'other-services',
         ];
     }
 
@@ -219,8 +218,7 @@ class BookingController extends Controller
             'Photography & Videography',
             'Graphics & Printing Design',
             'Make Up',
-            'Software Development',
-            'Sound System',
+            'Other Services',
         ];
     }
 
@@ -245,9 +243,20 @@ class BookingController extends Controller
             return false;
         }
 
+        if (!empty($reward->service_id)) {
+            if ((int) $reward->service_id === (int) $service->id) {
+                return true;
+            }
+
+            if ((int) ($reward->service?->parent_service_id ?? 0) === (int) $service->id) {
+                return true;
+            }
+        }
+
         $serviceKey = $this->normalizedServiceKey($service);
         $allowedRewardSlugs = match ($serviceKey) {
             'graphics-printing' => ['graphics-printing-design', 'graphics-printing'],
+            'other-services' => ['other-services', 'software-development', 'sound-system', 'funerals', 'live-streaming', 'drone-services', 'real-estate'],
             default => [$serviceKey],
         };
 
@@ -282,7 +291,15 @@ class BookingController extends Controller
             'photography & videography' => 'photography-videography',
             'graphics & printing design' => 'graphics-printing',
             'make up' => 'make-up',
+            'other services' => 'other-services',
             'software development' => 'software-development',
+            'website development' => 'software-development',
+            'sound system' => 'sound-system',
+            'funerals' => 'funerals',
+            'live streaming' => 'live-streaming',
+            'drone services' => 'drone-services',
+            'real estate services' => 'real-estate',
+            'real estate' => 'real-estate',
             default => Str::slug($service->title),
         };
     }

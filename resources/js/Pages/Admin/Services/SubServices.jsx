@@ -84,7 +84,7 @@ export default function SubServices({ service, subServices = [] }) {
     };
 
     const deleteSubService = (id) => {
-        if (confirm('Delete this sub-service?')) {
+        if (confirm('Delete this item?')) {
             destroy(route('admin.services.subservices.destroy', [service.id, id]));
         }
     };
@@ -104,14 +104,14 @@ export default function SubServices({ service, subServices = [] }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-gray-800">Manage Sub-services</h2>}>
-            <Head title="Manage Sub-services" />
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-gray-800">Manage Service Items</h2>}>
+            <Head title="Manage Service Items" />
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="mb-6 flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-semibold text-gray-800">Service: {service.title}</h3>
-                            <p className="text-sm text-gray-600">Create and manage sub-services for this service.</p>
+                            <p className="text-sm text-gray-600">Create and manage the items shown inside this service card.</p>
                         </div>
                         <Link
                             href={route('admin.services')}
@@ -122,7 +122,7 @@ export default function SubServices({ service, subServices = [] }) {
                     </div>
 
                     <div className="glass rounded-2xl p-6 mb-6">
-                        <h3 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Edit' : 'Add'} Sub-service</h3>
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Edit' : 'Add'} Item</h3>
                         <form onSubmit={submit}>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>

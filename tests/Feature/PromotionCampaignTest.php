@@ -210,6 +210,99 @@ class PromotionCampaignTest extends TestCase
         $this->assertEquals('discount', $usedRecipient?->delivery_strategy);
     }
 
+    public function test_free_reward_campaign_can_grant_or_rewind_rewards_for_users_with_bookings(): void
+    {
+        $admin = $this->createAdmin();
+        $service = Service::create([
+            'title' => 'Photography & Videography',
+            'description' => 'Studio shoots',
+        ]);
+        $reward = Reward::create([
+            'name' => 'Photography Reward',
+            'name_rw' => 'Impano y amafoto',
+            'slug' => 'photo-reward',
+            'service_id' => $service->id,
+            'description' => 'Reward',
+            'expires_after_days' => 30,
+            'is_active' => true,
+        ]);
+
+        $freshBookedUser = User::factory()->create(['role' => 'editor']);
+        $usedBookedUser = User::factory()->create(['role' => 'editor']);
+        $noBookingUser = User::factory()->create(['role' => 'editor']);
+
+        foreach ([$freshBookedUser, $usedBookedUser] as $user) {
+            Booking::create([
+                'user_id' => $user->id,
+                'service_id' => $service->id,
+                'status' => 'approved',
+                'booking_date' => now()->toDateString(),
+                'booking_time' => now()->format('H:i:s'),
+                'description' => 'Qualified booking',
+            ]);
+        }
+
+        $existingReward = UserReward::create([
+            'user_id' => $usedBookedUser->id,
+            'reward_id' => $reward->id,
+            'status' => 'used',
+            'assigned_at' => now()->subDays(20),
+            'used_at' => now()->subDays(5),
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.promotions.campaigns.store'), [
+            'name' => 'Photography reward rewind',
+            'title_rw' => 'Impano yongeye kuboneka',
+            'message_rw' => 'Dufunguye reward nshya ku bakiriya bafite booking.',
+            'audience_type' => 'users_with_bookings',
+            'booking_status_filter' => 'approved',
+            'reference_reward_id' => $reward->id,
+            'offer_type' => 'free_reward',
+            'send_in_app' => true,
+        ]);
+
+        $response->assertRedirect();
+
+        $campaign = PromotionCampaign::first();
+
+        $this->assertNotNull($campaign);
+        $this->assertDatabaseHas('promotion_campaign_recipients', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $freshBookedUser->id,
+            'delivery_strategy' => 'free_reward',
+        ]);
+        $this->assertDatabaseHas('promotion_campaign_recipients', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $usedBookedUser->id,
+            'delivery_strategy' => 'free_reward',
+        ]);
+        $this->assertDatabaseMissing('promotion_campaign_recipients', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $noBookingUser->id,
+        ]);
+
+        $freshReward = UserReward::where('user_id', $freshBookedUser->id)
+            ->where('reward_id', $reward->id)
+            ->first();
+
+        $this->assertNotNull($freshReward);
+        $this->assertEquals('unused', $freshReward->status);
+        $this->assertNull($freshReward->used_at);
+        $this->assertNotNull($freshReward->expires_at);
+
+        $existingReward->refresh();
+
+        $this->assertEquals('unused', $existingReward->status);
+        $this->assertNull($existingReward->used_at);
+        $this->assertTrue($existingReward->expires_at?->isFuture());
+        $this->assertDatabaseHas('reward_rewinds', [
+            'user_id' => $usedBookedUser->id,
+            'reward_id' => $reward->id,
+            'action' => 'campaign_rewind',
+        ]);
+    }
+
     public function test_admin_can_rewind_used_reward_to_unused(): void
     {
         $admin = $this->createAdmin();

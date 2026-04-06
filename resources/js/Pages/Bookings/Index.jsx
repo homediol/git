@@ -9,14 +9,27 @@ const fallbackServiceKeys = {
     'Photography & Videography': 'photography-videography',
     'Graphics & Printing Design': 'graphics-printing',
     'Make Up': 'make-up',
+    'Other Services': 'other-services',
     'Software Development': 'software-development',
+    'Website Development': 'software-development',
+    'Sound System': 'sound-system',
+    'Funerals': 'funerals',
+    'Live Streaming': 'live-streaming',
+    'Drone Services': 'drone-services',
+    'Real Estate Services': 'real-estate',
 };
 
 const fallbackServiceImages = {
     'photography-videography': '/images/services/photography-videography.svg',
     'graphics-printing': '/images/services/graphics-printing.svg',
     'make-up': '/images/services/make-up.svg',
+    'other-services': '/images/services/software-development.svg',
     'software-development': '/images/services/software-development.svg',
+    'sound-system': '/images/services/software-development.svg',
+    'funerals': '/images/services/software-development.svg',
+    'live-streaming': '/images/services/software-development.svg',
+    'drone-services': '/images/services/software-development.svg',
+    'real-estate': '/images/services/software-development.svg',
 };
 
 const rewardServiceMap = {
@@ -24,7 +37,13 @@ const rewardServiceMap = {
     'graphics-printing-design': 'graphics-printing',
     'graphics-printing': 'graphics-printing',
     'make-up': 'make-up',
+    'other-services': 'other-services',
     'software-development': 'software-development',
+    'sound-system': 'sound-system',
+    'funerals': 'funerals',
+    'live-streaming': 'live-streaming',
+    'drone-services': 'drone-services',
+    'real-estate': 'real-estate',
 };
 
 const statusClasses = {
@@ -73,10 +92,24 @@ function resolveRewardImage(rewardItem, services = []) {
 function rewardMatchesService(rewardItem, service) {
     if (!rewardItem?.reward || !service) return false;
 
+    if (rewardItem.reward.service_id) {
+        if (String(rewardItem.reward.service_id) === String(service.id)) {
+            return true;
+        }
+
+        if (String(rewardItem.reward.service?.parent_service_id || '') === String(service.id)) {
+            return true;
+        }
+    }
+
     const serviceKey = toServiceKey(service);
     const rewardKey = rewardServiceMap[rewardItem.reward.slug] || rewardServiceMap[rewardItem.reward.slug || ''];
 
     if (rewardKey) {
+        if (serviceKey === 'other-services' && ['other-services', 'software-development', 'sound-system', 'funerals', 'live-streaming', 'drone-services', 'real-estate'].includes(rewardKey)) {
+            return true;
+        }
+
         return rewardKey === serviceKey;
     }
 

@@ -1425,6 +1425,64 @@
     [data-theme='dark'] .placeholder-slate-400::placeholder {
         color: var(--md-placeholder);
     }
+
+    [data-theme='dark'] .theme-static-ink .text-slate-950,
+    [data-theme='dark'] .theme-static-ink .text-slate-900,
+    [data-theme='dark'] .theme-static-ink .text-slate-800 {
+        color: rgba(15, 23, 42, 0.96);
+    }
+
+    [data-theme='dark'] .theme-static-ink .text-slate-900\/65,
+    [data-theme='dark'] .theme-static-ink .text-slate-900\/60,
+    [data-theme='dark'] .theme-static-ink .text-slate-900\/70,
+    [data-theme='dark'] .theme-static-ink .text-slate-900\/75 {
+        color: rgba(15, 23, 42, 0.72);
+    }
+
+    [data-theme='dark'] .theme-static-ink .bg-white\/80,
+    [data-theme='dark'] .theme-static-ink .bg-white\/85,
+    [data-theme='dark'] .theme-static-ink .bg-white\/90 {
+        background-color: rgba(255, 255, 255, 0.86);
+    }
+
+    [data-theme='dark'] .theme-static-ink .bg-slate-950\/10 {
+        background-color: rgba(15, 23, 42, 0.10);
+    }
+
+    [data-theme='dark'] .theme-surface-panel {
+        background: linear-gradient(
+            135deg,
+            rgba(15, 27, 45, 0.94),
+            rgba(10, 21, 37, 0.96),
+            rgba(6, 32, 46, 0.92)
+        );
+        border-color: var(--md-outline);
+    }
+
+    [data-theme='dark'] .theme-surface-panel .text-slate-950,
+    [data-theme='dark'] .theme-surface-panel .text-slate-900,
+    [data-theme='dark'] .theme-surface-panel .text-slate-800 {
+        color: var(--md-text);
+    }
+
+    [data-theme='dark'] .theme-surface-panel .text-slate-600 {
+        color: var(--md-muted);
+    }
+
+    [data-theme='dark'] .theme-surface-panel .text-slate-500 {
+        color: var(--md-muted-soft);
+    }
+
+    [data-theme='dark'] .theme-surface-panel .bg-white,
+    [data-theme='dark'] .theme-surface-panel .bg-white\/85,
+    [data-theme='dark'] .theme-surface-panel .bg-white\/90 {
+        background-color: var(--md-surface-alt);
+    }
+
+    [data-theme='dark'] .theme-surface-panel .border-white,
+    [data-theme='dark'] .theme-surface-panel .border-sky-200 {
+        border-color: var(--md-outline);
+    }
 }
 
 @keyframes fadeIn {

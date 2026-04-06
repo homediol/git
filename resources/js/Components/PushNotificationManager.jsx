@@ -5,6 +5,7 @@ import {
     deletePushToken,
     getPushToken,
     getPushPromptDismissed,
+    getPushPromptReminderRemainingMs,
     isPushConfigured,
     isPushSupported,
     normalizePushPayload,
@@ -48,16 +49,13 @@ export default function PushNotificationManager() {
     const { t } = useLocale();
     const user = auth?.user;
     const enabledByUser = Boolean(user?.push_notifications_enabled);
-    const reminderSecondsDefault = Math.ceil(PUSH_PROMPT_REMINDER_MS / 1000);
-    const reminderDurationLabel = formatDuration(reminderSecondsDefault);
+    const reminderDurationLabel = formatDuration(Math.ceil(PUSH_PROMPT_REMINDER_MS / 1000));
     const [permission, setPermission] = useState(() => (
         typeof Notification === 'undefined' ? 'default' : Notification.permission
     ));
     const [dismissed, setDismissed] = useState(() => getPushPromptDismissed());
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState('');
-    const [reminderSecondsLeft, setReminderSecondsLeft] = useState(reminderSecondsDefault);
-    const [reminderHidden, setReminderHidden] = useState(false);
     const tokenRef = useRef(null);
     const previousEnabledRef = useRef(enabledByUser);
 
@@ -202,33 +200,26 @@ export default function PushNotificationManager() {
 
     useEffect(() => {
         if (!user || permission === 'granted' || !dismissed) {
-            setReminderSecondsLeft(reminderSecondsDefault);
-            setReminderHidden(false);
             return undefined;
         }
 
-        const startedAt = Date.now();
-        setReminderSecondsLeft(reminderSecondsDefault);
+        const remainingMs = getPushPromptReminderRemainingMs();
 
-        const interval = window.setInterval(() => {
-            const elapsedMs = Date.now() - startedAt;
-            const remainingMs = PUSH_PROMPT_REMINDER_MS - elapsedMs;
+        if (remainingMs <= 0) {
+            setPushPromptDismissed(false);
+            setDismissed(false);
+            return undefined;
+        }
 
-            if (remainingMs <= 0) {
-                setReminderSecondsLeft(reminderSecondsDefault);
-                setPushPromptDismissed(false);
-                setDismissed(false);
-                window.clearInterval(interval);
-                return;
-            }
-
-            setReminderSecondsLeft(Math.max(1, Math.ceil(remainingMs / 1000)));
-        }, 250);
+        const timeout = window.setTimeout(() => {
+            setPushPromptDismissed(false);
+            setDismissed(false);
+        }, remainingMs);
 
         return () => {
-            window.clearInterval(interval);
+            window.clearTimeout(timeout);
         };
-    }, [user, permission, dismissed, reminderSecondsDefault]);
+    }, [user, permission, dismissed]);
 
     if (!user || !isPushConfigured() || !isPushSupported() || !enabledByUser) {
         return null;
@@ -268,73 +259,9 @@ export default function PushNotificationManager() {
     const dismissPrompt = () => {
         setPushPromptDismissed(true);
         setDismissed(true);
-        setReminderHidden(false);
-    };
-
-    const reopenPrompt = () => {
-        setPushPromptDismissed(false);
-        setDismissed(false);
-        setReminderHidden(false);
-        setError('');
-    };
-
-    const hideReminder = (event) => {
-        event.stopPropagation();
-        setReminderHidden(true);
     };
 
     if (!promptVisible) {
-        if (user && permission !== 'granted' && dismissed && !reminderHidden) {
-            const progress = ((reminderSecondsDefault - reminderSecondsLeft) / reminderSecondsDefault) * 100;
-
-            return (
-                <div className="fixed inset-0 z-[88] flex items-center justify-center px-4 py-6 pointer-events-none">
-                    <div className="pointer-events-auto w-full max-w-sm rounded-[26px] border border-[rgba(255,255,255,0.2)] bg-[linear-gradient(140deg,rgba(255,122,24,0.96),rgba(255,90,31,0.93)_42%,rgba(234,67,53,0.94)_100%)] p-4 text-white shadow-[0_24px_80px_rgba(7,17,31,0.24)]">
-                        <div className="flex items-start justify-between gap-3">
-                            <button
-                                type="button"
-                                onClick={reopenPrompt}
-                                className="flex-1 text-left transition hover:translate-y-[-1px]"
-                            >
-                                <div className="flex items-center justify-between gap-4">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/72">
-                                            {t('push_prompt.ad', 'Notification Ad')}
-                                        </p>
-                                        <p className="mt-1 text-sm font-bold">
-                                            {formatMessage(
-                                                t('push_prompt.reminder_returns', 'Reminder returns in :seconds'),
-                                                { seconds: formatDuration(reminderSecondsLeft) },
-                                            )}
-                                        </p>
-                                    </div>
-                                    <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-semibold">
-                                        {t('push_prompt.open_now', 'Open now')}
-                                    </span>
-                                </div>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={hideReminder}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/10 text-white transition hover:bg-white/18"
-                                aria-label={t('push_prompt.hide_reminder_aria', 'Hide reminder')}
-                            >
-                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/18">
-                            <div
-                                className="h-full rounded-full bg-white transition-[width] duration-200"
-                                style={{ width: `${Math.max(6, progress)}%` }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
         return null;
     }
 

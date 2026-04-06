@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import PavonaLogo from '@/Components/PavonaLogo';
 import { bookingPhone, bookingPhoneDisplay, bookingWhatsAppUrl } from '@/Components/BookingContactActions';
 import { useLocale } from '@/Providers/LocaleProvider';
+import { googleMapsUrl } from '@/lib/location';
 
 const companyEmail = 'info@pavonastudios.com';
 
@@ -168,7 +169,14 @@ export default function Footer({ settings = {} }) {
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-slate-500">{t('footer.contact.address')}</p>
-                                <p>{t('footer.contact.address_value')}</p>
+                                <a
+                                    href={googleMapsUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="hover:text-[color:var(--md-text)] transition"
+                                >
+                                    {t('footer.contact.address_value')}
+                                </a>
                             </div>
                         </div>
                     </div>

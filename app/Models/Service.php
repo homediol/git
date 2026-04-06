@@ -34,4 +34,9 @@ class Service extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function rewards()
+    {
+        return $this->hasMany(Reward::class);
+    }
 }

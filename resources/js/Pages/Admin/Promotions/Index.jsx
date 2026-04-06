@@ -11,6 +11,8 @@ const audienceLabels = {
     all_users: 'All users',
     new_users: 'New users only',
     specific_users: 'Specific users',
+    users_with_bookings: 'Users with bookings',
+    users_without_bookings: 'Users without bookings',
     booked_service: 'Booked service category',
 };
 
@@ -30,8 +32,17 @@ const ageSegmentLabels = {
 
 const strategyLabels = {
     standard: 'Standard',
+    free_reward: 'Free reward',
     reward_reminder: 'Reminder',
     discount: 'Discount',
+    discount_rewind: 'Discount rewind',
+};
+
+const offerTypeLabels = {
+    standard: 'Standard announcement',
+    smart_reward: 'Smart reward flow',
+    free_reward: 'Free reward grant',
+    discount_rewind: 'Discount rewind',
 };
 
 function formatDateTime(value) {
@@ -72,11 +83,15 @@ export default function PromotionsIndex({
         target_user_ids: [],
         specific_users: '',
         target_service_ids: [],
+        booking_status_filter: 'any',
         reward_filter: 'any',
         reference_reward_id: '',
+        offer_type: 'smart_reward',
         smart_reward_mode: true,
         discount_percent: 15,
         discount_code: '',
+        original_price_rwf: '',
+        discounted_price_rwf: '',
         send_in_app: true,
         send_email: false,
         send_sms: false,
@@ -151,11 +166,15 @@ export default function PromotionsIndex({
             target_user_ids: [],
             specific_users: '',
             target_service_ids: [],
+            booking_status_filter: 'any',
             reward_filter: 'any',
             reference_reward_id: '',
+            offer_type: 'smart_reward',
             smart_reward_mode: true,
             discount_percent: 15,
             discount_code: '',
+            original_price_rwf: '',
+            discounted_price_rwf: '',
             send_in_app: true,
             send_email: false,
             send_sms: false,
@@ -180,11 +199,15 @@ export default function PromotionsIndex({
                 audience_type: currentData.audience_type,
                 user_age_segment: currentData.user_age_segment,
                 new_user_window_days: currentData.new_user_window_days || 30,
+                booking_status_filter: currentData.booking_status_filter || 'any',
                 reward_filter: currentData.reward_filter,
                 reference_reward_id: currentData.reference_reward_id || '',
-                smart_reward_mode: currentData.smart_reward_mode ? '1' : '0',
+                offer_type: currentData.offer_type || 'standard',
+                smart_reward_mode: currentData.offer_type === 'smart_reward' ? '1' : '0',
                 discount_percent: currentData.discount_percent || '',
                 discount_code: currentData.discount_code || '',
+                original_price_rwf: currentData.original_price_rwf || '',
+                discounted_price_rwf: currentData.discounted_price_rwf || '',
                 send_in_app: currentData.send_in_app ? '1' : '0',
                 send_email: currentData.send_email ? '1' : '0',
                 send_sms: currentData.send_sms ? '1' : '0',
@@ -343,11 +366,12 @@ export default function PromotionsIndex({
                                 Build campaigns for real behavior, not just broad broadcasts.
                             </h3>
                             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-                                This panel supports all users, new users, exact IDs or emails, and users who booked a
-                                specific service category. Smart mode will automatically send a reminder when a reward is
-                                still unused, and switch to a discount-style promotion once the reward was already used.
+                                This panel supports free reward grants, discount rewinds, and smart follow-up campaigns
+                                for all users, new users, exact users, users with bookings, and users who booked a
+                                specific service category.
                             </p>
                             <div className="mt-5 flex flex-wrap gap-3">
+                                <span className="chip bg-emerald-100 text-emerald-700">Free reward grants</span>
                                 <span className="chip bg-orange-100 text-orange-700">In-app tracking</span>
                                 <span className="chip bg-amber-100 text-amber-700">Optional email</span>
                                 <span className="chip bg-rose-100 text-rose-700">Optional SMS log</span>
@@ -365,6 +389,11 @@ export default function PromotionsIndex({
                                 <p className="mt-3 text-3xl font-semibold text-orange-600">{audienceStats.newUsers30d || 0}</p>
                                 <p className="mt-1 text-sm text-slate-500">Joined in the last 30 days</p>
                             </div>
+                            <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-orange-200/30">
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Booked Users</p>
+                                <p className="mt-3 text-3xl font-semibold text-sky-600">{audienceStats.bookedUsers || 0}</p>
+                                <p className="mt-1 text-sm text-slate-500">Have at least one booking history</p>
+                            </div>
                             <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-orange-200/30 sm:col-span-2">
                                 <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Recent Campaigns</p>
                                 <p className="mt-3 text-3xl font-semibold text-slate-900">{campaigns.length}</p>
@@ -381,11 +410,12 @@ export default function PromotionsIndex({
                                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-orange-500">Create Campaign</p>
                                 <h3 className="mt-2 text-2xl font-semibold text-slate-900">Targeted promotion launch</h3>
                                 <p className="mt-2 text-sm text-slate-600">
-                                    Define the content, choose the audience, then send through in-app, email, and SMS logging.
+                                    Define the audience, choose whether this is a free reward, smart reward flow, or
+                                    discount rewind, then send it through the channels you want.
                                 </p>
                             </div>
                             <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.25em] text-orange-700">
-                                Smart reward aware
+                                Service-linked offers
                             </div>
                         </div>
 
@@ -471,6 +501,8 @@ export default function PromotionsIndex({
                                                 <option value="all_users">All users</option>
                                                 <option value="new_users">New users only</option>
                                                 <option value="specific_users">Specific users from database</option>
+                                                <option value="users_with_bookings">Users with any booking</option>
+                                                <option value="users_without_bookings">Users without bookings</option>
                                                 <option value="booked_service">Users who booked a service</option>
                                             </select>
                                             <InputError message={campaignForm.errors.audience_type} className="mt-2" />
@@ -500,6 +532,23 @@ export default function PromotionsIndex({
                                                 />
                                             </div>
                                         </div>
+
+                                        {['users_with_bookings', 'booked_service'].includes(campaignForm.data.audience_type) && (
+                                            <div>
+                                                <InputLabel value="Booking status filter" />
+                                                <select
+                                                    value={campaignForm.data.booking_status_filter}
+                                                    onChange={(event) => campaignForm.setData('booking_status_filter', event.target.value)}
+                                                    className="mt-2 block w-full rounded-2xl border border-[color:var(--md-outline)] bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm"
+                                                >
+                                                    <option value="any">Any booking status</option>
+                                                    <option value="pending">Pending bookings</option>
+                                                    <option value="approved">Approved bookings</option>
+                                                    <option value="rejected">Rejected bookings</option>
+                                                </select>
+                                                <InputError message={campaignForm.errors.booking_status_filter} className="mt-2" />
+                                            </div>
+                                        )}
 
                                         {campaignForm.data.audience_type === 'specific_users' && (
                                             <div>
@@ -605,6 +654,24 @@ export default function PromotionsIndex({
                                 <div className="rounded-3xl border border-orange-100 bg-white/70 p-4">
                                     <p className="text-sm font-semibold text-slate-900">Reward and delivery logic</p>
                                     <div className="mt-4 grid gap-4">
+                                        <div>
+                                            <InputLabel value="Offer type" />
+                                            <select
+                                                value={campaignForm.data.offer_type}
+                                                onChange={(event) => campaignForm.setData('offer_type', event.target.value)}
+                                                className="mt-2 block w-full rounded-2xl border border-[color:var(--md-outline)] bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm"
+                                            >
+                                                <option value="standard">Standard announcement</option>
+                                                <option value="smart_reward">Smart reward reminder/discount flow</option>
+                                                <option value="free_reward">Grant or rewind a free reward</option>
+                                                <option value="discount_rewind">Send a discount rewind offer</option>
+                                            </select>
+                                            <p className="mt-2 text-xs text-slate-500">
+                                                Free reward grants create or rewind a user reward. Discount rewinds keep the
+                                                offer in notifications and on the rewards page.
+                                            </p>
+                                        </div>
+
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <div>
                                                 <InputLabel value="Reward filter" />
@@ -631,21 +698,24 @@ export default function PromotionsIndex({
                                                     {rewardOptions.map((reward) => (
                                                         <option key={reward.id} value={reward.id}>
                                                             {reward.name_rw || reward.name}
+                                                            {reward.service?.title ? ` • ${reward.service.title}` : ''}
                                                         </option>
                                                     ))}
                                                 </select>
+                                                {(campaignForm.data.offer_type === 'free_reward' || campaignForm.data.offer_type === 'discount_rewind') && (
+                                                    <p className="mt-2 text-xs text-slate-500">
+                                                        Choose the service-linked reward this campaign should use.
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
-                                        <label className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-slate-700">
-                                            <input
-                                                type="checkbox"
-                                                checked={campaignForm.data.smart_reward_mode}
-                                                onChange={(event) => campaignForm.setData('smart_reward_mode', event.target.checked)}
-                                                className="mr-3 rounded"
-                                            />
-                                            Enable smart promotions: send reminders to unused rewards and discounts to already-used rewards.
-                                        </label>
+                                        {campaignForm.data.offer_type === 'smart_reward' && (
+                                            <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-slate-700">
+                                                Matching users with unused rewards receive reminders. Users with used rewards
+                                                receive discount offers automatically.
+                                            </div>
+                                        )}
 
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <div>
@@ -669,6 +739,33 @@ export default function PromotionsIndex({
                                                     placeholder="PAVONA15"
                                                 />
                                                 <InputError message={campaignForm.errors.discount_code} className="mt-2" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div>
+                                                <InputLabel value="Original price (FRW)" />
+                                                <TextInput
+                                                    type="number"
+                                                    min="1"
+                                                    value={campaignForm.data.original_price_rwf}
+                                                    onChange={(event) => campaignForm.setData('original_price_rwf', event.target.value)}
+                                                    className="mt-2 block w-full"
+                                                    placeholder="2000"
+                                                />
+                                                <InputError message={campaignForm.errors.original_price_rwf} className="mt-2" />
+                                            </div>
+                                            <div>
+                                                <InputLabel value="Discounted price (FRW)" />
+                                                <TextInput
+                                                    type="number"
+                                                    min="1"
+                                                    value={campaignForm.data.discounted_price_rwf}
+                                                    onChange={(event) => campaignForm.setData('discounted_price_rwf', event.target.value)}
+                                                    className="mt-2 block w-full"
+                                                    placeholder="1000"
+                                                />
+                                                <InputError message={campaignForm.errors.discounted_price_rwf} className="mt-2" />
                                             </div>
                                         </div>
 
@@ -765,12 +862,25 @@ export default function PromotionsIndex({
                                                 <span className="chip bg-amber-100 text-amber-700">
                                                     {ageSegmentLabels[campaign.user_age_segment] || campaign.user_age_segment}
                                                 </span>
+                                                <span className="chip bg-emerald-100 text-emerald-700">
+                                                    {offerTypeLabels[campaign.offer_type] || campaign.offer_type}
+                                                </span>
                                                 <span className="chip bg-slate-100 text-slate-700">
                                                     {rewardFilterLabels[campaign.reward_filter] || campaign.reward_filter}
                                                 </span>
+                                                {campaign.booking_status_filter && campaign.booking_status_filter !== 'any' && (
+                                                    <span className="chip bg-sky-100 text-sky-700">
+                                                        Booking status: {campaign.booking_status_filter}
+                                                    </span>
+                                                )}
                                                 {campaign.reference_reward && (
                                                     <span className="chip bg-rose-100 text-rose-700">
                                                         Reward: {campaign.reference_reward.name}
+                                                    </span>
+                                                )}
+                                                {campaign.original_price_rwf && campaign.discounted_price_rwf && (
+                                                    <span className="chip bg-emerald-100 text-emerald-700">
+                                                        {campaign.original_price_rwf} FRW {'->'} {campaign.discounted_price_rwf} FRW
                                                     </span>
                                                 )}
                                             </div>
@@ -787,9 +897,9 @@ export default function PromotionsIndex({
                                                     <p className="mt-2 text-2xl font-semibold text-emerald-600">{campaign.stats.opened}</p>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50 p-4">
-                                                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Reminders / Discounts</p>
+                                                    <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Free / Reminder / Discount</p>
                                                     <p className="mt-2 text-2xl font-semibold text-slate-900">
-                                                        {campaign.stats.reminders} / {campaign.stats.discounts}
+                                                        {campaign.stats.free_rewards} / {campaign.stats.reminders} / {campaign.stats.discounts}
                                                     </p>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50 p-4">
@@ -829,6 +939,9 @@ export default function PromotionsIndex({
                                                                 .join(', ')}
                                                         </p>
                                                     )}
+                                                    {campaign.booking_status_filter && campaign.booking_status_filter !== 'any' && (
+                                                        <p className="mt-2">Booking status: {campaign.booking_status_filter}</p>
+                                                    )}
                                                 </div>
                                             )}
 
@@ -854,6 +967,11 @@ export default function PromotionsIndex({
                                                                         <p className="mt-1 text-xs text-slate-500">
                                                                             {recipient.user?.email || 'No email'} • {recipient.user?.phone || 'No phone'}
                                                                         </p>
+                                                                        {recipient.meta?.service_title && (
+                                                                            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-600">
+                                                                                {recipient.meta.service_title}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                     <div className="flex flex-wrap gap-2">
                                                                         <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">

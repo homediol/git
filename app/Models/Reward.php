@@ -12,6 +12,7 @@ class Reward extends Model
         'name_en',
         'name_fr',
         'slug',
+        'service_id',
         'description',
         'description_rw',
         'description_en',
@@ -29,6 +30,11 @@ class Reward extends Model
     public function userRewards()
     {
         return $this->hasMany(UserReward::class);
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
     }
 
     public function promotionCampaigns()

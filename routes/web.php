@@ -29,6 +29,7 @@ use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Models\Advertisement;
 use App\Models\Service;
+use App\Services\WelcomeOfferService;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -75,16 +76,14 @@ Route::get('/dashboard', function () {
         'photography-videography',
         'graphics-printing',
         'make-up',
-        'software-development',
-        'sound-system',
+        'other-services',
     ];
 
     $featuredTitles = [
         'Photography & Videography',
         'Graphics & Printing Design',
         'Make Up',
-        'Software Development',
-        'Sound System',
+        'Other Services',
     ];
 
     $services = Service::query()->whereNull('parent_service_id')->get();
@@ -106,6 +105,7 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard', [
         'rewards' => $user?->userRewards()->with('reward')->latest()->get() ?? [],
         'services' => $services,
+        'welcomeOffer' => app(WelcomeOfferService::class)->forFrontend($user),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -207,6 +207,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/rewards', [AdminRewardController::class, 'store'])->name('rewards.store');
     Route::put('/rewards/{reward}', [AdminRewardController::class, 'update'])->name('rewards.update');
     Route::delete('/rewards/{reward}', [AdminRewardController::class, 'destroy'])->name('rewards.destroy');
+    Route::post('/rewards/welcome-offer', [AdminRewardController::class, 'updateWelcomeOffer'])->name('rewards.welcome-offer.update');
     Route::put('/rewards/user/{userReward}', [AdminRewardController::class, 'updateUserReward'])->name('rewards.user.update');
     Route::post('/rewards/user/{userReward}/rewind', [AdminRewardController::class, 'rewindUserReward'])->name('rewards.user.rewind');
 

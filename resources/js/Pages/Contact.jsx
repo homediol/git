@@ -7,6 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import AdCircleGrid from '@/Components/AdCircleGrid';
 import { bookingPhone, bookingWhatsAppUrl } from '@/Components/BookingContactActions';
 import { useLocale } from '@/Providers/LocaleProvider';
+import { googleMapsEmbedUrl, googleMapsUrl } from '@/lib/location';
 
 export default function Contact({ auth, flash, advertisements = [], settings }) {
     const { t } = useLocale();
@@ -144,7 +145,14 @@ export default function Contact({ auth, flash, advertisements = [], settings }) 
                                 <div className="space-y-4 text-slate-600">
                                     <div>
                                         <p className="font-semibold text-sm text-slate-500">{t('footer.contact.address')}</p>
-                                        <p className="text-base">{t('footer.contact.address_value')}</p>
+                                        <a
+                                            href={googleMapsUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-base text-[color:var(--md-secondary)] transition hover:text-[color:var(--md-text)] hover:underline"
+                                        >
+                                            {t('footer.contact.address_value')}
+                                        </a>
                                     </div>
                                     <div>
                                         <p className="font-semibold text-sm text-slate-500">{t('footer.contact.phone')}</p>
@@ -188,16 +196,57 @@ export default function Contact({ auth, flash, advertisements = [], settings }) 
 
                     <div className="surface p-4 mb-12">
                         <h2 className="font-display text-xl sm:text-2xl font-semibold text-[color:var(--md-text)] mb-4">{t('contact.map.title')}</h2>
-                        <div className="h-72 w-full overflow-hidden rounded-xl sm:h-96">
+                        <div className="overflow-hidden rounded-xl border border-[color:var(--md-outline)]">
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.1841!2d-73.9857!3d40.7484!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQ0JzU0LjIiTiA3M8KwNTknMDguNSJX!5e0!3m2!1sen!2sus!4v1234567890"
+                                src={googleMapsEmbedUrl}
                                 width="100%"
-                                height="100%"
+                                height="450"
                                 style={{ border: 0 }}
-                                allowFullScreen=""
+                                allowFullScreen
                                 loading="lazy"
-                            ></iframe>
+                                referrerPolicy="no-referrer-when-downgrade"
+                                title="Pavona Studios location"
+                                className="h-[450px] w-full"
+                            />
                         </div>
+
+                        <a
+                            href={googleMapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-4 block overflow-hidden rounded-xl border border-[color:var(--md-outline)] bg-[linear-gradient(135deg,rgba(255,109,0,0.14),rgba(66,133,244,0.12),rgba(52,168,83,0.12))] p-6 transition hover:shadow-elevated"
+                        >
+                            <div className="flex flex-col justify-between rounded-[20px] bg-white/85 p-6">
+                                <div>
+                                    <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+                                        Google Maps
+                                    </span>
+                                    <h3 className="mt-4 font-display text-2xl font-semibold text-[color:var(--md-text)]">
+                                        {t('footer.contact.address_value')}
+                                    </h3>
+                                    <p className="mt-3 max-w-xl text-sm text-slate-600">
+                                        {t('contact.map.helper', 'Open this location directly in Google Maps for directions and exact navigation.')}
+                                    </p>
+                                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                            {t('contact.map.link_label', 'Map link provided')}
+                                        </p>
+                                        <p className="mt-2 break-all font-mono text-sm text-[color:var(--md-secondary)]">
+                                            {googleMapsUrl}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 flex flex-wrap items-center gap-3">
+                                    <span className="inline-flex items-center rounded-full bg-[color:var(--md-secondary)] px-4 py-2 text-sm font-semibold text-white">
+                                        {t('contact.map.open', 'Open in Google Maps')}
+                                    </span>
+                                    <span className="text-sm font-medium text-slate-500">
+                                        {t('contact.map.open_hint', 'Tap to open the exact location')}
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
                     </div>
 
                     {advertisements.length > 0 && (

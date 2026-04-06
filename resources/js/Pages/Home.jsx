@@ -1,16 +1,41 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import AdSlider from '@/Components/AdSlider';
 import AuthRequiredModal from '@/Components/AuthRequiredModal';
 import MediaPreview from '@/Components/MediaPreview';
+import ServiceDiscountCards from '@/Components/ServiceDiscountCards';
+import WelcomeOfferShowcase from '@/Components/WelcomeOfferShowcase';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
 
-export default function Home({ auth, services = [], portfolios = [], teams = [], advertisements = [], promoRewards = [], settings = {} }) {
+function translateByLocale(locale, messages) {
+    return messages[locale] || messages.rw;
+}
+
+export default function Home({ auth, services = [], portfolios = [], advertisements = [], promoRewards = [], welcomeOffer = {}, settings = {} }) {
     const { locale, t } = useLocale();
+    const page = usePage();
+    const { siteSettings = {} } = page.props;
     const heroImage = portfolios?.[0]?.image || services?.[0]?.image;
+    const featuredBundleImage = siteSettings.featured_bundle_image
+        ? `/storage/${siteSettings.featured_bundle_image}`
+        : heroImage;
     const [authModalOpen, setAuthModalOpen] = useState(false);
+    const hasWelcomeDiscountCards = (welcomeOffer?.discount_cards ?? []).length > 0;
+    const hasSelectedWelcomeRewards = (welcomeOffer?.rewards ?? []).length > 0;
+    const showWelcomeOffer = Boolean(welcomeOffer?.has_offer);
+    const featuredBundle = {
+        badge_rw: siteSettings.featured_bundle_badge_rw,
+        badge_en: siteSettings.featured_bundle_badge_en,
+        badge_fr: siteSettings.featured_bundle_badge_fr,
+        title_rw: siteSettings.featured_bundle_title_rw,
+        title_en: siteSettings.featured_bundle_title_en,
+        title_fr: siteSettings.featured_bundle_title_fr,
+        description_rw: siteSettings.featured_bundle_description_rw,
+        description_en: siteSettings.featured_bundle_description_en,
+        description_fr: siteSettings.featured_bundle_description_fr,
+    };
 
     const stats = [
         { value: '240+', label: t('home.stats.projects') },
@@ -19,9 +44,45 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
     ];
 
     const rewardHighlights = [
-        { title: t('home.rewards.cards.one.title'), description: t('home.rewards.cards.one.description') },
-        { title: t('home.rewards.cards.two.title'), description: t('home.rewards.cards.two.description') },
-        { title: t('home.rewards.cards.three.title'), description: t('home.rewards.cards.three.description') },
+        {
+            title: translateByLocale(locale, {
+                rw: 'Discount igaragara ku booking ya mbere',
+                en: 'Visible discount on the first booking',
+                fr: 'Remise visible sur la premiere reservation',
+            }),
+            description: translateByLocale(locale, {
+                rw: 'Umukiriya mushya abanza kubona igabanyirizwa ryateguwe neza kandi rihita rigaragara.',
+                en: 'New customers see a clear welcome discount right away.',
+                fr: 'Les nouveaux clients voient une remise de bienvenue claire des le depart.',
+            }),
+            image: null,
+        },
+        {
+            title: translateByLocale(locale, {
+                rw: 'Free services zitoranywa na admin',
+                en: 'Free services chosen by admin',
+                fr: 'Services gratuits choisis par l admin',
+            }),
+            description: translateByLocale(locale, {
+                rw: 'Nta yindi reward ihabwa umuntu ku bwikora keretse izatoranyijwe na admin.',
+                en: 'Only the free services selected by admin are granted automatically.',
+                fr: 'Seuls les services gratuits choisis par l admin sont attribues automatiquement.',
+            }),
+            image: null,
+        },
+        {
+            title: translateByLocale(locale, {
+                rw: 'Booking ihita iba yoroshye',
+                en: 'Smoother first booking',
+                fr: 'Premiere reservation plus simple',
+            }),
+            description: translateByLocale(locale, {
+                rw: 'Discount n impano zose zifitanye isano n serivisi bigaragara hamwe ku buryo bworoshye.',
+                en: 'Discounts and service-linked offers stay visible in one place.',
+                fr: 'Les remises et services lies restent visibles au meme endroit.',
+            }),
+            image: null,
+        },
     ];
 
     const promoCards = promoRewards.length > 0
@@ -30,12 +91,14 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
             title: getLocalizedValue(locale, reward, 'name'),
             description: getLocalizedValue(locale, reward, 'description'),
             image: reward.image,
+            isFreeReward: true,
         }))
         : rewardHighlights.map((reward) => ({
             id: reward.title,
             title: reward.title,
             description: reward.description,
-            image: null,
+            image: reward.image,
+            isFreeReward: false,
         }));
 
     const processSteps = [
@@ -80,18 +143,18 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                     <div className="surface p-6 sm:p-8">
                         <div className="fire-gradient rounded-2xl p-5 text-white shadow-elevated">
                             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
-                                {t('home.hero.card.badge')}
+                                {getLocalizedValue(locale, featuredBundle, 'badge') || t('home.hero.card.badge')}
                             </p>
                             <h3 className="mt-2 text-xl sm:text-2xl font-semibold">
-                                {t('home.hero.card.title')}
+                                {getLocalizedValue(locale, featuredBundle, 'title') || t('home.hero.card.title')}
                             </h3>
                             <p className="mt-2 text-sm text-white/85">
-                                {t('home.hero.card.description')}
+                                {getLocalizedValue(locale, featuredBundle, 'description') || t('home.hero.card.description')}
                             </p>
                         </div>
-                        {heroImage && (
+                        {featuredBundleImage && (
                             <MediaPreview
-                                src={heroImage}
+                                src={featuredBundleImage}
                                 alt={t('home.hero.card.image_alt')}
                                 className="mt-6 h-52 w-full rounded-2xl object-cover"
                                 videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
@@ -142,12 +205,12 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                             {t('home.services.view_all')}
                         </Link>
                     </div>
-                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
                         {services.slice(0, 6).map((service) => (
                             <Link
                                 key={service.id}
                                 href={route('services.show', service.id)}
-                                className="surface p-6 transition-all duration-300 hover:shadow-elevated hover:-translate-y-1"
+                                className="surface flex h-full flex-col p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
                             >
                                 {service.image && (
                                     <MediaPreview
@@ -161,9 +224,15 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                                 <h3 className="text-lg font-semibold text-[color:var(--md-text)]">
                                     {getLocalizedValue(locale, service, 'title')}
                                 </h3>
-                                <p
-                                    className="mt-2 text-sm text-slate-600"
+                                <div
+                                    className="mt-2 flex-1 text-sm text-slate-600"
                                     dangerouslySetInnerHTML={{ __html: getLocalizedValue(locale, service, 'description') }}
+                                />
+                                <ServiceDiscountCards
+                                    locale={locale}
+                                    welcomeOffer={welcomeOffer}
+                                    serviceId={service.id}
+                                    className="mt-5"
                                 />
                                 <span className="mt-4 inline-flex text-sm font-semibold text-[color:var(--md-secondary)]">
                                     {t('home.services.view_more')}
@@ -179,62 +248,127 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                 <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--md-success)]">
-                            {t('home.rewards.eyebrow')}
+                            {showWelcomeOffer
+                                ? translateByLocale(locale, {
+                                    rw: 'Welcome Discount',
+                                    en: 'Welcome Discount',
+                                    fr: 'Remise de bienvenue',
+                                })
+                                : t('home.rewards.eyebrow')}
                         </p>
                         <h2 className="font-display text-3xl sm:text-4xl font-semibold mt-2 text-[color:var(--md-text)]">
-                            {t('home.rewards.title')}
+                            {showWelcomeOffer
+                                ? translateByLocale(locale, {
+                                    rw: 'Welcome discount cards hamwe na free services zayo zitandukanye',
+                                    en: 'Welcome discount cards with a separate free-service block',
+                                    fr: 'Cartes de remise de bienvenue avec bloc separe pour les services gratuits',
+                                })
+                                : t('home.rewards.title')}
                         </h2>
                         <p className="text-slate-600 mt-3 max-w-xl">
-                            {t('home.rewards.subtitle')}
+                            {showWelcomeOffer
+                                ? translateByLocale(locale, {
+                                    rw: 'Abakiriya bashya babona cards zitandukanye za discount, buri imwe ifite izina n igiciro cyayo, hanyuma free services zatoranyijwe na admin zikaza mu yindi card yazo.',
+                                    en: 'New customers now see separate discount cards, each with its own title and price, while admin-selected free services appear in a different block.',
+                                    fr: 'Les nouveaux clients voient maintenant des cartes de remise distinctes avec leur propre titre et prix, tandis que les services gratuits choisis par l admin apparaissent dans un autre bloc.',
+                                })
+                                : t('home.rewards.subtitle')}
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <span className="chip chip-success">{t('home.rewards.chip_one')}</span>
-                            <span className="chip chip-success">{t('home.rewards.chip_two')}</span>
-                            <span className="chip chip-success">{t('home.rewards.chip_three')}</span>
+                            {hasWelcomeDiscountCards && (
+                                <span className="chip chip-success">
+                                    {translateByLocale(locale, {
+                                        rw: `${welcomeOffer.discount_card_count} discount cards`,
+                                        en: `${welcomeOffer.discount_card_count} discount cards`,
+                                        fr: `${welcomeOffer.discount_card_count} cartes de remise`,
+                                    })}
+                                </span>
+                            )}
+                            <span className="chip chip-success">
+                                {hasSelectedWelcomeRewards
+                                    ? translateByLocale(locale, {
+                                        rw: `${welcomeOffer.selected_reward_count} free services zatoranyijwe`,
+                                        en: `${welcomeOffer.selected_reward_count} selected free services`,
+                                        fr: `${welcomeOffer.selected_reward_count} services gratuits choisis`,
+                                    })
+                                    : translateByLocale(locale, {
+                                        rw: 'Free services zitoranywa na admin',
+                                        en: 'Admin-selected free services',
+                                        fr: 'Services gratuits choisis par l admin',
+                                    })}
+                            </span>
                         </div>
                         <div className="mt-8 flex flex-wrap gap-4">
-                            <Link href={route('services')} className="btn-success">
-                                {t('home.rewards.cta')}
+                            <Link href={auth?.user ? route('rewards.index') : route('services')} className="btn-success">
+                                {auth?.user
+                                    ? translateByLocale(locale, {
+                                        rw: 'Reba offers zawe',
+                                        en: 'View your offers',
+                                        fr: 'Voir vos offres',
+                                    })
+                                    : translateByLocale(locale, {
+                                        rw: 'Reba discount',
+                                        en: 'See the discount',
+                                        fr: 'Voir la remise',
+                                    })}
                             </Link>
                             <Link href={route('contact')} className="btn-outline">
                                 {t('home.rewards.cta_secondary')}
                             </Link>
                         </div>
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        {promoCards.map((reward) => (
-                            <div key={reward.id} className="surface p-5 flex flex-col">
-                                {reward.image && (
-                                    <MediaPreview
-                                        src={reward.image}
-                                        alt={reward.title}
-                                        className="mb-3 h-32 w-full rounded-2xl object-cover"
-                                        videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
-                                    />
-                                )}
-                                <div className="flex items-center gap-2">
-                                    <span className="chip chip-success">{t('home.rewards.free')}</span>
-                                    <h3 className="text-base font-semibold text-[color:var(--md-text)]">{reward.title}</h3>
-                                </div>
-                                <p className="mt-2 text-sm text-slate-600">{reward.description}</p>
-                                {!auth?.user ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setAuthModalOpen(true)}
-                                        className="btn-success mt-4 w-full"
-                                    >
-                                        {t('home.rewards.claim')}
-                                    </button>
-                                ) : (
-                                    <Link
-                                        href={route('rewards.index')}
-                                        className="btn-outline mt-4 w-full text-center"
-                                    >
-                                        {t('home.rewards.view')}
-                                    </Link>
-                                )}
+                    <div>
+                        {showWelcomeOffer ? (
+                            <WelcomeOfferShowcase locale={locale} welcomeOffer={welcomeOffer} />
+                        ) : (
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {promoCards.map((reward) => (
+                                    <div key={reward.id} className="surface p-5 flex flex-col">
+                                        {reward.image && (
+                                            <MediaPreview
+                                                src={reward.image}
+                                                alt={reward.title}
+                                                className="mb-3 h-32 w-full rounded-2xl object-cover"
+                                                videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
+                                            />
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <span className="chip chip-success">
+                                                {reward.isFreeReward
+                                                    ? t('home.rewards.free')
+                                                    : translateByLocale(locale, {
+                                                        rw: 'OFFER',
+                                                        en: 'OFFER',
+                                                        fr: 'OFFRE',
+                                                    })}
+                                            </span>
+                                            <h3 className="text-base font-semibold text-[color:var(--md-text)]">{reward.title}</h3>
+                                        </div>
+                                        <p className="mt-2 text-sm text-slate-600">{reward.description}</p>
+                                        {!auth?.user ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setAuthModalOpen(true)}
+                                                className="btn-success mt-4 w-full"
+                                            >
+                                                {reward.isFreeReward ? t('home.rewards.claim') : translateByLocale(locale, {
+                                                    rw: 'Fungura offer',
+                                                    en: 'Open offer',
+                                                    fr: 'Ouvrir l offre',
+                                                })}
+                                            </button>
+                                        ) : (
+                                            <Link
+                                                href={route('rewards.index')}
+                                                className="btn-outline mt-4 w-full text-center"
+                                            >
+                                                {t('home.rewards.view')}
+                                            </Link>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </section>
@@ -264,16 +398,16 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                                     {item.image && (
                                         <MediaPreview
                                             src={item.image}
-                                            alt={item.title}
+                                            alt={getLocalizedValue(locale, item, 'title') || item.title}
                                             className="w-full h-52 object-cover"
                                             imgProps={{ loading: 'lazy' }}
                                             videoProps={{ autoPlay: true, loop: true, muted: true, playsInline: true, preload: 'metadata' }}
                                         />
                                     )}
                                     <div className="p-5">
-                                        <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">{item.category}</span>
-                                        <h3 className="text-lg font-semibold text-[color:var(--md-text)] mt-2">{item.title}</h3>
-                                        <p className="text-sm text-slate-600 mt-2">{item.description}</p>
+                                        <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">{getLocalizedValue(locale, item, 'category') || item.category}</span>
+                                        <h3 className="text-lg font-semibold text-[color:var(--md-text)] mt-2">{getLocalizedValue(locale, item, 'title') || item.title}</h3>
+                                        <p className="text-sm text-slate-600 mt-2">{getLocalizedValue(locale, item, 'description') || item.description}</p>
                                     </div>
                                 </div>
                             ))}
@@ -330,35 +464,6 @@ export default function Home({ auth, services = [], portfolios = [], teams = [],
                 </div>
             </section>
 
-            {teams.length > 0 && (
-                <section className="py-14 px-4">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="text-center max-w-3xl mx-auto mb-10">
-                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--md-secondary)]">
-                                {t('home.team.eyebrow')}
-                            </p>
-                            <h2 className="font-display text-3xl sm:text-4xl font-semibold mt-2 text-[color:var(--md-text)]">
-                                {t('home.team.title')}
-                            </h2>
-                            <p className="text-slate-600 mt-3">
-                                {t('home.team.subtitle')}
-                            </p>
-                        </div>
-                        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                            {teams.map((member) => (
-                                <div key={member.id} className="surface p-6 text-center transition-all duration-300 hover:shadow-elevated hover:-translate-y-1">
-                                    {member.image && (
-                                        <img src={member.image} alt={member.name} className="w-28 h-28 rounded-full mx-auto mb-4 object-cover" />
-                                    )}
-                                    <h3 className="text-lg font-semibold text-[color:var(--md-text)]">{member.name}</h3>
-                                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold mt-2">{member.position}</p>
-                                    {member.bio && <p className="text-sm text-slate-600 mt-3">{member.bio}</p>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
             <AuthRequiredModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
         </PublicLayout>
     );

@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ChatTrigger from '@/Components/ChatTrigger';
 import MediaPreview from '@/Components/MediaPreview';
+import WelcomeOfferShowcase from '@/Components/WelcomeOfferShowcase';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useLocale } from '@/Providers/LocaleProvider';
 import { getLocalizedValue } from '@/lib/i18n';
@@ -9,14 +10,27 @@ const fallbackServiceKeys = {
     'Photography & Videography': 'photography-videography',
     'Graphics & Printing Design': 'graphics-printing',
     'Make Up': 'make-up',
+    'Other Services': 'other-services',
     'Software Development': 'software-development',
+    'Website Development': 'software-development',
+    'Sound System': 'sound-system',
+    'Funerals': 'funerals',
+    'Live Streaming': 'live-streaming',
+    'Drone Services': 'drone-services',
+    'Real Estate Services': 'real-estate',
 };
 
 const fallbackServiceImages = {
     'photography-videography': '/images/services/photography-videography.svg',
     'graphics-printing': '/images/services/graphics-printing.svg',
     'make-up': '/images/services/make-up.svg',
+    'other-services': '/images/services/software-development.svg',
     'software-development': '/images/services/software-development.svg',
+    'sound-system': '/images/services/software-development.svg',
+    'funerals': '/images/services/software-development.svg',
+    'live-streaming': '/images/services/software-development.svg',
+    'drone-services': '/images/services/software-development.svg',
+    'real-estate': '/images/services/software-development.svg',
 };
 
 const rewardServiceMap = {
@@ -24,7 +38,13 @@ const rewardServiceMap = {
     'graphics-printing-design': 'graphics-printing',
     'graphics-printing': 'graphics-printing',
     'make-up': 'make-up',
+    'other-services': 'other-services',
     'software-development': 'software-development',
+    'sound-system': 'sound-system',
+    'funerals': 'funerals',
+    'live-streaming': 'live-streaming',
+    'drone-services': 'drone-services',
+    'real-estate': 'real-estate',
 };
 
 function toServiceKey(service) {
@@ -59,7 +79,11 @@ function clipText(value = '', limit = 96) {
     return value.length > limit ? `${value.slice(0, limit).trim()}...` : value;
 }
 
-export default function Dashboard({ rewards = [], services = [] }) {
+function translateByLocale(locale, messages) {
+    return messages[locale] || messages.rw;
+}
+
+export default function Dashboard({ rewards = [], services = [], welcomeOffer = {} }) {
     const { auth } = usePage().props;
     const { locale, t } = useLocale();
     const unusedRewards = rewards.filter((reward) => reward.status !== 'used');
@@ -70,6 +94,7 @@ export default function Dashboard({ rewards = [], services = [] }) {
     const servicePreview = services.slice(0, 3);
     const heroService = servicePreview[0] || null;
     const heroImage = resolveServiceImage(heroService);
+    const showWelcomeOffer = Boolean(welcomeOffer?.eligible && welcomeOffer?.has_offer);
 
     const formatDate = (value) => {
         if (!value) {
@@ -170,6 +195,73 @@ export default function Dashboard({ rewards = [], services = [] }) {
 
             <div className="booking-stage">
                 <div className="booking-layer space-y-6">
+                    {showWelcomeOffer && (
+                        <div className="booking-panel overflow-hidden p-6 sm:p-7">
+                            <div className="flex flex-col gap-5">
+                                <div>
+                                    <span className="booking-badge">
+                                        {translateByLocale(locale, {
+                                            rw: 'Welcome Offer',
+                                            en: 'Welcome Offer',
+                                            fr: 'Offre de bienvenue',
+                                        })}
+                                    </span>
+                                    <h3 className="mt-4 font-display text-2xl font-semibold text-slate-950">
+                                        {translateByLocale(locale, {
+                                            rw: 'Discount cards zawe za mbere ziteguye hano',
+                                            en: 'Your first-booking discount cards are ready here',
+                                            fr: 'Vos cartes de remise pour la premiere reservation sont pretes ici',
+                                        })}
+                                    </h3>
+                                    <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+                                        {translateByLocale(locale, {
+                                            rw: 'System nshya iguha cards zitandukanye za discount mbere, hanyuma free services zatoranyijwe na admin zikaza mu block yazo itandukanye kandi igaragara neza.',
+                                            en: 'The new flow gives you separate discount cards first, then admin-selected free services in their own distinct visible block.',
+                                            fr: 'Le nouveau flux vous donne d abord des cartes de remise distinctes, puis les services gratuits choisis par l admin dans leur propre bloc visible.',
+                                        })}
+                                    </p>
+                                    <div className="mt-4 flex flex-wrap gap-3">
+                                        {welcomeOffer.discount_card_count > 0 && (
+                                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
+                                                {translateByLocale(locale, {
+                                                    rw: `${welcomeOffer.discount_card_count} discount cards`,
+                                                    en: `${welcomeOffer.discount_card_count} discount cards`,
+                                                    fr: `${welcomeOffer.discount_card_count} cartes de remise`,
+                                                })}
+                                            </span>
+                                        )}
+                                        {welcomeOffer.selected_reward_count > 0 && (
+                                            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-orange-700">
+                                                {translateByLocale(locale, {
+                                                    rw: `${welcomeOffer.selected_reward_count} free services zatoranyijwe`,
+                                                    en: `${welcomeOffer.selected_reward_count} selected free services`,
+                                                    fr: `${welcomeOffer.selected_reward_count} services gratuits choisis`,
+                                                })}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <WelcomeOfferShowcase locale={locale} welcomeOffer={welcomeOffer} />
+                            </div>
+
+                            <div className="mt-6 flex flex-wrap gap-3">
+                                <Link href={route('rewards.index')} className="btn-fire">
+                                    {translateByLocale(locale, {
+                                        rw: 'Reba details',
+                                        en: 'View details',
+                                        fr: 'Voir les details',
+                                    })}
+                                </Link>
+                                <Link href={route('bookings.index')} className="btn-outline">
+                                    {t('dashboard.cta.services')}
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid gap-4 md:grid-cols-3">
                         {summaryCards.map((card, index) => (
                             <div

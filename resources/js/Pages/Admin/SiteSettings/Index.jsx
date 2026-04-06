@@ -8,11 +8,13 @@ export default function Index({ auth, settings }) {
         header_bg: null,
         main_bg: null,
         footer_bg: null,
+        featured_bundle_image: null,
     });
     const [uploadErrors, setUploadErrors] = useState({
         header_bg: '',
         main_bg: '',
         footer_bg: '',
+        featured_bundle_image: '',
     });
     const [links, setLinks] = useState({
         whatsapp_url: settings.whatsapp_url || '',
@@ -20,6 +22,15 @@ export default function Index({ auth, settings }) {
         facebook_url: settings.facebook_url || '',
         x_url: settings.x_url || '',
         contact_email: settings.contact_email || '',
+        featured_bundle_badge_rw: settings.featured_bundle_badge_rw || '',
+        featured_bundle_badge_en: settings.featured_bundle_badge_en || '',
+        featured_bundle_badge_fr: settings.featured_bundle_badge_fr || '',
+        featured_bundle_title_rw: settings.featured_bundle_title_rw || '',
+        featured_bundle_title_en: settings.featured_bundle_title_en || '',
+        featured_bundle_title_fr: settings.featured_bundle_title_fr || '',
+        featured_bundle_description_rw: settings.featured_bundle_description_rw || '',
+        featured_bundle_description_en: settings.featured_bundle_description_en || '',
+        featured_bundle_description_fr: settings.featured_bundle_description_fr || '',
     });
 
     const handleFileChange = (field) => (event) => {
@@ -42,17 +53,27 @@ export default function Index({ auth, settings }) {
         if (files.header_bg) formData.append('header_bg', files.header_bg);
         if (files.main_bg) formData.append('main_bg', files.main_bg);
         if (files.footer_bg) formData.append('footer_bg', files.footer_bg);
+        if (files.featured_bundle_image) formData.append('featured_bundle_image', files.featured_bundle_image);
         formData.append('whatsapp_url', links.whatsapp_url);
         formData.append('instagram_url', links.instagram_url);
         formData.append('facebook_url', links.facebook_url);
         formData.append('x_url', links.x_url);
         formData.append('contact_email', links.contact_email);
+        formData.append('featured_bundle_badge_rw', links.featured_bundle_badge_rw);
+        formData.append('featured_bundle_badge_en', links.featured_bundle_badge_en);
+        formData.append('featured_bundle_badge_fr', links.featured_bundle_badge_fr);
+        formData.append('featured_bundle_title_rw', links.featured_bundle_title_rw);
+        formData.append('featured_bundle_title_en', links.featured_bundle_title_en);
+        formData.append('featured_bundle_title_fr', links.featured_bundle_title_fr);
+        formData.append('featured_bundle_description_rw', links.featured_bundle_description_rw);
+        formData.append('featured_bundle_description_en', links.featured_bundle_description_en);
+        formData.append('featured_bundle_description_fr', links.featured_bundle_description_fr);
         
         router.post(route('admin.settings.update'), formData);
     };
 
     const handleDelete = (type) => {
-        if (confirm('Delete this background?')) {
+        if (confirm('Delete this media?')) {
             router.delete(route('admin.settings.delete'), {
                 data: { type },
             });
@@ -180,6 +201,143 @@ export default function Index({ auth, settings }) {
                                                 placeholder="info@company.com"
                                                 className="block w-full rounded-lg border border-slate-200 px-4 py-2"
                                             />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="border-t pt-6">
+                                    <h3 className="text-xl font-bold mb-4">Home Featured Bundle</h3>
+                                    <p className="mb-4 text-sm text-slate-500">
+                                        Manage the `Featured Bundle / Launch Kit` card shown on the home page.
+                                    </p>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium mb-2">Bundle Image</label>
+                                        {settings.featured_bundle_image && (
+                                            <div className="mb-3">
+                                                <img
+                                                    src={`/storage/${settings.featured_bundle_image}`}
+                                                    alt="Featured bundle"
+                                                    className="h-40 w-full max-w-md rounded-xl object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete('featured_bundle_image')}
+                                                    className="mt-2 text-sm text-red-600"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange('featured_bundle_image')}
+                                            className="block w-full"
+                                        />
+                                        <p className="mt-2 text-xs font-medium text-slate-500">Images up to {ADMIN_IMAGE_UPLOAD_LIMIT_MB}MB are supported.</p>
+                                        {uploadErrors.featured_bundle_image && <p className="mt-2 text-sm text-red-500">{uploadErrors.featured_bundle_image}</p>}
+                                    </div>
+                                    <div className="grid gap-6 lg:grid-cols-3">
+                                        <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+                                            <h4 className="font-semibold text-slate-900">Kinyarwanda</h4>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Badge</label>
+                                                <input
+                                                    type="text"
+                                                    value={links.featured_bundle_badge_rw}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_badge_rw: e.target.value })}
+                                                    placeholder="Ipaketi yihariye"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={links.featured_bundle_title_rw}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_title_rw: e.target.value })}
+                                                    placeholder="Launch Kit"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Description</label>
+                                                <textarea
+                                                    value={links.featured_bundle_description_rw}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_description_rw: e.target.value })}
+                                                    placeholder="Logo + Brand Guide + Social Templates mu minsi 7."
+                                                    rows="4"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+                                            <h4 className="font-semibold text-slate-900">English</h4>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Badge</label>
+                                                <input
+                                                    type="text"
+                                                    value={links.featured_bundle_badge_en}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_badge_en: e.target.value })}
+                                                    placeholder="Featured Bundle"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={links.featured_bundle_title_en}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_title_en: e.target.value })}
+                                                    placeholder="Launch Kit"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Description</label>
+                                                <textarea
+                                                    value={links.featured_bundle_description_en}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_description_en: e.target.value })}
+                                                    placeholder="Logo + Brand Guide + Social Templates in 7 days."
+                                                    rows="4"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+                                            <h4 className="font-semibold text-slate-900">Francais</h4>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Badge</label>
+                                                <input
+                                                    type="text"
+                                                    value={links.featured_bundle_badge_fr}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_badge_fr: e.target.value })}
+                                                    placeholder="Pack vedette"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={links.featured_bundle_title_fr}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_title_fr: e.target.value })}
+                                                    placeholder="Launch Kit"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Description</label>
+                                                <textarea
+                                                    value={links.featured_bundle_description_fr}
+                                                    onChange={(e) => setLinks({ ...links, featured_bundle_description_fr: e.target.value })}
+                                                    placeholder="Logo + Guide de marque + Templates sociaux en 7 jours."
+                                                    rows="4"
+                                                    className="block w-full rounded-lg border border-slate-200 px-4 py-2"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
